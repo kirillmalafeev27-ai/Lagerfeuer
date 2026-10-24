@@ -289,10 +289,28 @@ export class App {
     const w = Math.max(64, Math.round(r.width * this.dpr));
     const h = Math.max(64, Math.round(r.height * this.dpr));
     this.game.scale.setZoom(1 / this.dpr);
+    this.host.insetTop = this.gearInset();
     if (this.game.scale.width !== w || this.game.scale.height !== h) this.game.scale.resize(w, h);
     else this.scene?.layout();
     this.panel.fitPrompt();
     this.placeBubble();
+  }
+
+  /** В узкой панели мира плашка — строкой сверху: сцена вписывается ниже неё. */
+  private gearInset(): number {
+    if (!this.layout.root.classList.contains('is-narrow') || this.gear.el.style.display === 'none')
+      return 0;
+    return this.gear.el.offsetHeight + 8;
+  }
+
+  /** Плашку показали или спрятали — пересчитать отступ сцены. */
+  private setGearVisible(on: boolean): void {
+    this.gear.setVisible(on);
+    const inset = this.gearInset();
+    if (inset !== (this.host.insetTop ?? 0)) {
+      this.host.insetTop = inset;
+      this.scene?.layout();
+    }
   }
 
   private onSceneReady(): void {
@@ -335,7 +353,7 @@ export class App {
 
   private showMenu(): void {
     this.screen = 'menu';
-    this.gear.setVisible(false);
+    this.setGearVisible(false);
     this.panel.setHeader(iconStep(), ru.header.intro);
     this.panel.setMode('intro');
     this.show(
@@ -418,7 +436,7 @@ export class App {
     // Палатка всегда по диагонали от поленницы: один из верхних углов свободен.
     const pileLeft = cellCol(gen.state.pile) === 0;
     this.gear.placeAt(cellRow(gen.state.pile) === 0 ? !pileLeft : pileLeft);
-    this.gear.setVisible(true);
+    this.setGearVisible(true);
     this.panel.setMode('intro');
     this.panel.setHeader(iconStep(), ru.header.intro);
     this.panel.setReadyLock(false);
@@ -850,7 +868,7 @@ export class App {
     this.scene.beginRound(this.ctl, 'intro');
     this.scene.mode = 'play';
     this.ctl.pause();
-    this.gear.setVisible(false);
+    this.setGearVisible(false);
     this.show(null);
     this.layout.root.dataset.darkReady = '1';
   }

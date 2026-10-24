@@ -35,6 +35,8 @@ export interface Layout {
 }
 
 const LANDSCAPE_RATIO = 1.2;
+/** Ширина панели мира (CSS px), ниже которой плашка снаряжения — одной строкой. */
+const NARROW_WORLD = 520;
 
 /** Картинки темы «мел»: зерно бумаги, меловая рамка, фактура табличек. */
 export function chalkThemeImages(c: ThemeColors): Record<string, string> {
@@ -115,6 +117,8 @@ export function createLayout(
       landscape = next;
       root.classList.toggle('is-landscape', landscape);
     }
+    // Узкая панель мира: плашки в ней собираются в одну строку.
+    root.classList.toggle('is-narrow', world.getBoundingClientRect().width < NARROW_WORLD);
     for (const l of listeners) l();
   };
   const ro = new ResizeObserver(() => apply());

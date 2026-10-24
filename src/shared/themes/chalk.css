@@ -276,6 +276,46 @@
   z-index: 2;
 }
 
+/* Узкая панель мира: плашка — одна строка по верхнему краю, над полосой неба. */
+.bf.is-narrow .bf-gear {
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  max-width: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 4px;
+  border-width: 6px;
+  border-image: var(--bf-frame) 28 / 6px / 0 round;
+}
+
+.bf.is-narrow .bf-gear .bf-gear-row {
+  gap: 4px;
+}
+
+.bf.is-narrow .bf-gear .bf-moon {
+  width: 24px;
+  height: 24px;
+}
+
+.bf.is-narrow .bf-gear .bf-hands img {
+  height: 20px;
+}
+
+.bf.is-narrow .bf-toggle button {
+  font-size: 14px;
+  min-height: 30px;
+  padding: 2px 7px;
+}
+
+.bf.is-narrow .bf-gear .bf-btn.is-small {
+  font-size: 12px;
+  min-height: 30px;
+  padding: 2px 7px;
+}
+
 .bf-gear.at-left {
   left: 6px;
 }

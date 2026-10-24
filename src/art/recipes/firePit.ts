@@ -209,25 +209,36 @@ function embersTex(rc: RC): HTMLCanvasElement[] {
           under: 0.6,
           tones: [palette.ember.hot, palette.fire.mid],
         });
-        // Процарапанные трещины.
-        const cracks: Pt[][] = [];
+        // Раскалённое ядро и светящиеся трещины: угли читаются и без цвета (7.7.1).
+        const core = blob(pen.rng, p.w * 0.24, p.h * 0.22, {
+          cx: p.x - p.w * 0.08,
+          cy: p.y - p.h * 0.1,
+          irregularity: 0.3,
+        });
+        pastelFill(x, pen, core, palette.fire.core, -0.3, 1.2, {
+          stroke: Math.max(1.4, p.w * 0.12),
+          under: 0.85,
+          tones: [palette.fire.core, palette.spark],
+        });
         for (let k = 0; k < 2; k++) {
           const a = pen.rng() * Math.PI;
-          cracks.push([
+          const crack = [
             { x: p.x - Math.cos(a) * p.w * 0.3, y: p.y - Math.sin(a) * p.h * 0.3 },
             { x: p.x + (pen.rng() - 0.5) * 3, y: p.y + (pen.rng() - 0.5) * 2 },
             { x: p.x + Math.cos(a) * p.w * 0.32, y: p.y + Math.sin(a) * p.h * 0.32 },
-          ]);
+          ];
+          pastelStroke(x, pen, crack, Math.max(1.2, C * 0.012), palette.fire.mid, 0.9, {
+            taper: 0.5,
+          });
         }
-        sgraffito(x, pen, cracks, Math.max(1, C * 0.009));
       }
       crumbs(
         x,
         pen,
         { x: W * 0.2, y: H * 0.3, w: W * 0.6, h: H * 0.5 },
         palette.fire.core,
-        10,
-        C * 0.012,
+        12,
+        C * 0.016,
       );
       return c;
     },

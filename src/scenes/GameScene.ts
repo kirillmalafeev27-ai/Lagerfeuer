@@ -48,6 +48,8 @@ export interface SceneHost {
   hintsEnabled: boolean;
   wordsLang: 'de' | 'ru';
   darkFallback: boolean;
+  /** Сколько CSS px сверху канвы занимает плашка снаряжения (узкая панель мира). */
+  insetTop?: number;
   /** Ускорение времени раунда (только dev и e2e): столько шагов контроллера за кадр. */
   speed?: number;
   onWorldTap(t: WorldTarget): void;
@@ -137,12 +139,16 @@ export class GameScene extends Phaser.Scene {
     const fit = look.fit;
     const fitW = fit.right - fit.left;
     const fitH = fit.bottom - fit.top;
-    const cellCss = Math.min(cssW / fitW, cssH / (fitH + look.sky.min * 0.5));
+    // Сверху может быть занята полоса под плашку снаряжения (узкая панель мира).
+    const inset = Math.max(0, Math.min(cssH * 0.3, this.host.insetTop ?? 0));
+    const usableH = cssH - inset;
+    const cellCss = Math.min(cssW / fitW, usableH / (fitH + look.sky.min * 0.5));
     const zoom = (cellCss * dpr) / CELL;
     cam.setZoom(zoom);
     const viewWc = cssW / cellCss;
     const viewHc = cssH / cellCss;
-    const extra = viewHc - fitH;
+    const usableHc = usableH / cellCss;
+    const extra = usableHc - fitH;
     let top: number;
     if (extra >= look.sky.min) {
       this.skyCells = Math.min(look.sky.max, Math.max(look.sky.min, extra * 0.6));
@@ -153,13 +159,20 @@ export class GameScene extends Phaser.Scene {
       top = fit.top - Math.max(0, extra) * 0.8;
     }
     const cx = (fit.left + fit.right) / 2;
-    const centerY = top + viewHc / 2;
-    cam.centerOn(cx * CELL, centerY * CELL);
-    this.view = { x: (cx - viewWc / 2) * CELL, y: top * CELL, w: viewWc * CELL, h: viewHc * CELL };
-    this.sky.layout(this.view, this.skyCells);
+    const viewTop = top - inset / cellCss;
+    cam.centerOn(cx * CELL, (viewTop + viewHc / 2) * CELL);
+    this.view = {
+      x: (cx - viewWc / 2) * CELL,
+      y: viewTop * CELL,
+      w: viewWc * CELL,
+      h: viewHc * CELL,
+    };
+    // Небо и глаза — только в свободной части, под плашкой.
+    const open: ViewRect = { ...this.view, y: top * CELL, h: usableHc * CELL };
+    this.sky.layout(open, this.skyCells);
     this.world.setSkyBottom(this.sky.bottom);
     this.dark.layout(this.view, W, Hh, this.host.quality === 'low');
-    for (const f of this.fires) f.layoutEyes(this.view, this.sky.top, this.skyCells * CELL);
+    for (const f of this.fires) f.layoutEyes(open, this.sky.top, this.skyCells * CELL);
   }
 
   /** Перевести точку мира в CSS-пиксели канвы (для пузырей обучения). */
