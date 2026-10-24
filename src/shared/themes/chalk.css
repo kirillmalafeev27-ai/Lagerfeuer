@@ -1,0 +1,827 @@
+/* Тема «мел» общей раскладки серии (раздел 11.1.4): просветы — чёрная бумага с зерном,
+   панели обведены мелом, таблички — светлая пастель с тёмным текстом. Цвета приходят
+   из palette.ts через CSS-переменные (их выставляет layout.ts). */
+
+.bf {
+  --bf-gap: clamp(10px, 1.6vmin, 14px);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bf-paper);
+  background-image: var(--bf-tooth);
+  background-size: 128px 128px;
+  color: var(--bf-chalk);
+  font-family: 'Rubik', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.bf *,
+.bf *::before,
+.bf *::after {
+  box-sizing: border-box;
+}
+
+.bf-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: var(--bf-gap);
+  padding: max(var(--bf-gap), env(safe-area-inset-top)) max(var(--bf-gap), env(safe-area-inset-right))
+    max(var(--bf-gap), env(safe-area-inset-bottom)) max(var(--bf-gap), env(safe-area-inset-left));
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) clamp(300px, 42%, 420px);
+}
+
+.bf.is-landscape .bf-stage {
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 34%, 480px);
+  grid-template-rows: 1fr;
+}
+
+.bf-panel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 14px solid transparent;
+  border-image: var(--bf-frame) 28 / 14px / 4px round;
+  background-clip: padding-box;
+}
+
+.bf-world {
+  overflow: hidden;
+  background: var(--bf-paper);
+  border-image-outset: 4px;
+}
+
+.bf-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.bf-canvas canvas {
+  display: block;
+}
+
+.bf-question {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vmin, 12px);
+  padding: 4px;
+}
+
+/* ── Шапка панели вопроса ─────────────────────────────── */
+
+.bf-qhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  font-weight: 500;
+  font-size: clamp(14px, 2.1vmin, 17px);
+  color: var(--bf-chalk);
+}
+
+.bf-qhead img {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+
+.bf-qhead .bf-qhead-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bf-qhead.is-ready .bf-qhead-text {
+  color: var(--bf-caption);
+  animation: bf-breathe 1.2s ease-in-out infinite;
+}
+
+.bf-hoppla {
+  position: absolute;
+  right: 6px;
+  top: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transform: rotate(-6deg) scale(0.6);
+  transition:
+    opacity 0.12s,
+    transform 0.18s cubic-bezier(0.3, 1.6, 0.6, 1);
+  width: clamp(110px, 26%, 160px);
+}
+
+.bf-hoppla.is-on {
+  opacity: 1;
+  transform: rotate(-6deg) scale(1);
+}
+
+/* ── Таблички: задание и варианты ─────────────────────── */
+
+.bf-card {
+  position: relative;
+  color: var(--bf-ink);
+  background-color: var(--bf-card);
+  background-image: var(--bf-card-tex);
+  background-size: 256px 128px;
+  border: 7px solid transparent;
+  border-image: var(--bf-card-frame) 18 / 7px / 2px round;
+  background-clip: padding-box;
+  border-radius: 12px;
+}
+
+.bf-prompt {
+  flex: 1 1 auto;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.bf-prompt span {
+  display: block;
+  max-width: 100%;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.bf-options {
+  display: grid;
+  gap: clamp(8px, 1.4vmin, 12px);
+  grid-template-columns: 1fr 1fr;
+}
+
+.bf.is-landscape .bf-options {
+  grid-template-columns: 1fr;
+}
+
+.bf-options.n2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.bf-options.n3 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.bf-options.n3 .bf-option:last-child {
+  grid-column: 1 / -1;
+}
+
+.bf.is-landscape .bf-options.n2,
+.bf.is-landscape .bf-options.n3 {
+  grid-template-columns: 1fr;
+}
+
+.bf.is-landscape .bf-options.n3 .bf-option:last-child {
+  grid-column: auto;
+}
+
+.bf-option {
+  appearance: none;
+  min-height: 56px;
+  padding: 6px 12px;
+  font: inherit;
+  font-weight: 500;
+  font-size: clamp(16px, 2.6vmin, 21px);
+  line-height: 1.15;
+  cursor: pointer;
+  transition:
+    transform 0.08s,
+    filter 0.08s,
+    opacity 0.15s;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.bf-option .bf-key {
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.bf.is-touch .bf-option .bf-key {
+  display: none;
+}
+
+.bf-option:active,
+.bf-option.is-pressed {
+  transform: translateY(2px);
+  filter: brightness(0.9) contrast(1.05);
+}
+
+.bf-option:focus-visible,
+.bf-btn:focus-visible,
+.bf-toggle button:focus-visible {
+  outline: 3px solid var(--bf-caption);
+  outline-offset: 2px;
+}
+
+.bf-option.is-correct {
+  background-color: var(--bf-good);
+  box-shadow: 0 0 18px 2px color-mix(in srgb, var(--bf-good) 60%, transparent);
+}
+
+.bf-option.is-wrong {
+  background-color: var(--bf-bad);
+  animation: bf-shake 0.36s;
+}
+
+.bf-question.is-locked .bf-option {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.bf-question.is-drawing .bf-card {
+  animation: bf-draw-in 0.15s ease-out;
+}
+
+.bf-question.is-idle .bf-prompt,
+.bf-question.is-idle .bf-options,
+.bf-question.is-idle .bf-qhead {
+  visibility: hidden;
+}
+
+.bf-question.is-blurred .bf-prompt,
+.bf-question.is-blurred .bf-options {
+  filter: blur(9px);
+  pointer-events: none;
+}
+
+/* ── Плашка снаряжения ────────────────────────────────── */
+
+.bf-gear {
+  position: absolute;
+  top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--bf-paper) 82%, transparent);
+  border: 8px solid transparent;
+  border-image: var(--bf-frame) 28 / 8px / 0 round;
+  border-radius: 10px;
+  max-width: 46%;
+  z-index: 2;
+}
+
+.bf-gear.at-left {
+  left: 6px;
+}
+
+.bf-gear.at-right {
+  right: 6px;
+}
+
+.bf-gear-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bf-gear .bf-hands {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  font-size: 12px;
+}
+
+.bf-gear .bf-hands img {
+  height: 24px;
+}
+
+.bf-gear .bf-moon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+
+.bf-toggle {
+  display: flex;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.bf-toggle button {
+  appearance: none;
+  border: 2px solid var(--bf-chalk);
+  background: transparent;
+  color: var(--bf-chalk);
+  font: 400 15px 'Rubik Scribble', 'Rubik', sans-serif;
+  padding: 3px 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.bf-toggle button + button {
+  border-left: none;
+}
+
+.bf-toggle button:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
+.bf-toggle button:last-child {
+  border-radius: 0 9px 9px 0;
+}
+
+.bf-toggle button[aria-pressed='true'] {
+  background: var(--bf-caption);
+  color: var(--bf-ink);
+  border-color: var(--bf-caption);
+}
+
+.bf-toggle button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bf-btn {
+  appearance: none;
+  border: 2px solid var(--bf-chalk);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--bf-chalk);
+  font: 500 15px 'Rubik', sans-serif;
+  padding: 6px 12px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.bf-btn:active {
+  transform: translateY(2px);
+}
+
+.bf-btn.is-primary {
+  background: var(--bf-card);
+  background-image: var(--bf-card-tex);
+  color: var(--bf-ink);
+  border-color: var(--bf-card);
+}
+
+.bf-btn.is-small {
+  font-size: 13px;
+  padding: 4px 9px;
+  min-height: 30px;
+}
+
+.bf-iconbtn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Экраны ───────────────────────────────────────────── */
+
+.bf-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.bf-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  pointer-events: auto;
+  animation: bf-fade-in 0.25s ease-out;
+}
+
+.bf-screen.is-dim {
+  background: color-mix(in srgb, var(--bf-paper) 62%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.bf-screen.is-clear {
+  background: transparent;
+}
+
+.bf-sheet {
+  position: relative;
+  max-width: min(560px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 18px 20px;
+  background: color-mix(in srgb, var(--bf-paper) 90%, transparent);
+  border: 14px solid transparent;
+  border-image: var(--bf-frame) 28 / 14px / 0 round;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.bf-title {
+  font: 400 clamp(34px, 7.5vmin, 64px) / 1.05 'Rubik Scribble', 'Rubik', sans-serif;
+  color: var(--bf-chalk);
+  margin: 0;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--bf-caption) 35%, transparent);
+}
+
+.bf-subtitle {
+  font: 400 clamp(17px, 3vmin, 24px) 'Rubik Scribble', 'Rubik', sans-serif;
+  color: var(--bf-caption);
+  margin: 6px 0 0;
+}
+
+.bf-h2 {
+  font: 400 clamp(22px, 4vmin, 32px) 'Rubik Scribble', 'Rubik', sans-serif;
+  margin: 0 0 12px;
+  color: var(--bf-chalk);
+}
+
+.bf-caption {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--bf-caption);
+  color: var(--bf-ink);
+  border-radius: 6px;
+  font-weight: 500;
+  transform: rotate(-1deg);
+}
+
+.bf-world > .bf-screen {
+  z-index: 4;
+}
+
+.bf-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  background: none;
+  border: none;
+}
+
+.bf-menu .bf-btn {
+  min-width: 180px;
+  font-size: 18px;
+  min-height: 48px;
+}
+
+.bf-menu .bf-hint {
+  max-width: 360px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.bf-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.bf-level {
+  appearance: none;
+  position: relative;
+  padding: 10px 6px 8px;
+  min-height: 108px;
+  border: 10px solid transparent;
+  border-image: var(--bf-frame) 28 / 10px / 0 round;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bf-paper) 80%, transparent);
+  color: var(--bf-chalk);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bf-level .bf-level-num {
+  font: 400 30px 'Rubik Scribble', 'Rubik', sans-serif;
+  line-height: 1;
+}
+
+.bf-level .bf-level-name {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.bf-level .bf-stars {
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--bf-caption);
+}
+
+.bf-level .bf-traits {
+  font-size: 10.5px;
+  opacity: 0.7;
+  line-height: 1.2;
+}
+
+.bf-level:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bf-stars .off {
+  opacity: 0.25;
+}
+
+.bf-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.bf-results {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: min(980px, 100%);
+  align-items: stretch;
+}
+
+.bf-portrait-results .bf-results,
+.bf:not(.is-landscape) .bf-results {
+  grid-template-columns: 1fr;
+}
+
+.bf-rcard {
+  opacity: 0;
+  transform: translateY(14px) rotate(-1deg);
+  animation: bf-card-in 0.4s ease-out forwards;
+  padding: 12px;
+  border: 12px solid transparent;
+  border-image: var(--bf-frame) 28 / 12px / 0 round;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bf-paper) 88%, transparent);
+  text-align: center;
+}
+
+.bf-rcard img.bf-shot {
+  width: 100%;
+  max-height: 34vh;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+.bf-tally {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 34px;
+  margin: 6px 0;
+}
+
+.bf-tally img {
+  height: 26px;
+  animation: bf-pop 0.2s ease-out;
+}
+
+.bf-bigstars {
+  font-size: 40px;
+  letter-spacing: 6px;
+  color: var(--bf-caption);
+  line-height: 1.1;
+}
+
+.bf-bigstars span {
+  display: inline-block;
+}
+
+.bf-bigstars .off {
+  opacity: 0.22;
+}
+
+.bf-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  padding: 3px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--bf-chalk) 25%, transparent);
+  text-align: left;
+}
+
+.bf-stat b {
+  font-weight: 500;
+  color: var(--bf-caption);
+}
+
+.bf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.bf-loading .bf-sheet {
+  max-width: 420px;
+}
+
+.bf-loading .bf-lades {
+  font: 400 34px 'Rubik Scribble', 'Rubik', sans-serif;
+}
+
+.bf-loading .bf-tip {
+  font-size: 15px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.bf-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--bf-chalk) 18%, transparent);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.bf-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--bf-caption);
+  transition: width 0.2s;
+}
+
+.bf-intro {
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bf-intro .bf-line {
+  font: 400 clamp(22px, 4.6vmin, 38px) 'Rubik Scribble', 'Rubik', sans-serif;
+  color: var(--bf-chalk);
+  opacity: 0;
+  animation: bf-fade-in 0.45s ease-out forwards;
+  text-shadow: 0 2px 0 var(--bf-paper), 0 0 18px var(--bf-paper);
+}
+
+.bf-intro .bf-line + .bf-line {
+  animation-delay: 0.55s;
+  color: var(--bf-caption);
+}
+
+.bf-settings label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--bf-chalk) 25%, transparent);
+  text-align: left;
+  font-size: 15px;
+}
+
+.bf-settings input[type='range'] {
+  width: 140px;
+  accent-color: var(--bf-caption);
+}
+
+.bf-settings input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--bf-caption);
+}
+
+.bf-settings select {
+  font: inherit;
+  background: var(--bf-paper);
+  color: var(--bf-chalk);
+  border: 2px solid var(--bf-chalk);
+  border-radius: 8px;
+  padding: 3px 6px;
+}
+
+.bf-settings .bf-note {
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: left;
+  margin: 4px 0 0;
+}
+
+.bf-bubble {
+  position: absolute;
+  max-width: min(300px, 80%);
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--bf-paper) 94%, transparent);
+  border: 10px solid transparent;
+  border-image: var(--bf-frame) 28 / 10px / 0 round;
+  border-radius: 14px;
+  color: var(--bf-chalk);
+  font-size: 15px;
+  line-height: 1.35;
+  pointer-events: auto;
+  z-index: 5;
+  animation: bf-pop 0.25s ease-out;
+  text-align: left;
+}
+
+.bf-bubble .bf-btn {
+  margin-top: 8px;
+}
+
+.bf-topbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+
+.bf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@keyframes bf-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px) rotate(-1deg);
+  }
+  40% {
+    transform: translateX(6px) rotate(1deg);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes bf-draw-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes bf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bf-card-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+
+@keyframes bf-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bf-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.bf.is-reduced *,
+.bf.is-reduced *::before,
+.bf.is-reduced *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+}

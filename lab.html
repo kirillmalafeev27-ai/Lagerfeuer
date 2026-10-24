@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Лаборатория арта</title>
+    <style>
+      body { margin: 0; background: #15131c; color: #f4eedd; font: 14px Rubik, sans-serif; }
+      .grid { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; align-items: flex-end; }
+      figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+      figcaption { font-size: 11px; opacity: 0.7; }
+      canvas { display: block; }
+      .checker { background: #15131c; }
+    </style>
+  </head>
+  <body>
+    <div id="lab" class="grid"></div>
+    <script type="module" src="/src/lab.ts"></script>
+  </body>
+</html>
