@@ -33,9 +33,11 @@ export interface KitConfig {
   tooth: number;
   /** Масштаб: пикселей текстуры на условную единицу 128 (1 или 0.75 на низком качестве). */
   res: number;
+  /** Насколько глубоко ямка бумаги стирает пастель (1 — до чёрного). */
+  toothDepth: number;
 }
 
-const kit: KitConfig = { paper: '#15131c', tooth: 0.08, res: 1 };
+const kit: KitConfig = { paper: '#15131c', tooth: 0.06, res: 1, toothDepth: 0.55 };
 
 export function configureKit(c: Partial<KitConfig>): void {
   Object.assign(kit, c);
@@ -306,6 +308,7 @@ export function applyGrain(
   const oy = Math.floor(rng() * mask.height);
   ctx.save();
   ctx.globalCompositeOperation = 'destination-out';
+  ctx.globalAlpha = kit.toothDepth;
   ctx.translate(-ox, -oy);
   ctx.fillStyle = pat;
   ctx.fillRect(x + ox, y + oy, w, h);
@@ -402,8 +405,8 @@ function makeDab(rng: Rng, kind: BrushKind, w: number, h: number, profile: Float
       let alpha = across * Math.sqrt(Math.max(0, along));
       alpha *= 0.25 + fib[i] * fib[i] * 1.25;
       const grain = rng();
-      const holes = kind === 'chalk' ? 0.42 : kind === 'scribble' ? 0.16 : 0.12;
-      if (grain < holes * (0.5 + du * 1.0)) alpha *= 0.3;
+      const holes = kind === 'chalk' ? 0.38 : kind === 'scribble' ? 0.1 : 0.07;
+      if (grain < holes * (0.5 + du * 1.0)) alpha *= 0.55;
       alpha = Math.min(1, alpha * (solid + 0.35));
       const k = (j * w + i) * 4;
       img.data[k] = 255;

@@ -40,37 +40,63 @@ function plate(rc: RC): HTMLCanvasElement {
   return c;
 }
 
-function birchIcon(rc: RC): HTMLCanvasElement {
+/** Поленце в шкале: торец справа, тёмная обводка отделяет соседние поленья. */
+function logIcon(rc: RC, kind: 'birch' | 'oak'): HTMLCanvasElement {
   const gs = gaugeSize(rc.C);
-  const [c, x] = canvasFor(gs.slotW, gs.slotH);
-  const pen = makePen(rc.seed * 191, 0, 0);
-  const b = palette.birch;
-  const body = roundRectPts(pen, 0.5, 0.5, gs.slotW - 1, gs.slotH - 1, gs.slotH * 0.4);
-  pastelFill(x, pen, body, b.bark, 0, 1.4, { stroke: Math.max(2, gs.slotH * 0.3), under: 1, cross: 0.2, grain: false });
-  for (let i = 0; i < 3; i++) {
-    const mx = gs.slotW * (0.25 + i * 0.25) + (pen.rng() - 0.5) * 2;
-    const my = gs.slotH * (0.35 + pen.rng() * 0.3);
-    pastelStroke(x, pen, [{ x: mx - gs.slotH * 0.25, y: my }, { x: mx + gs.slotH * 0.25, y: my }], Math.max(1.4, gs.slotH * 0.16), b.mark, 1, { taper: 0.3, grain: false });
+  const W = kind === 'birch' ? gs.slotW : gs.slotW * 2 + gs.gap;
+  const H = gs.slotH;
+  const [c, x] = canvasFor(W, H);
+  const pen = makePen(rc.seed * (kind === 'birch' ? 191 : 193), 0, 0);
+  const r = H * 0.46;
+  const body = roundRectPts(pen, 1, 1, W - 2, H - 2, r);
+  const bark = kind === 'birch' ? palette.birch.bark : palette.oak.light;
+  const shade = kind === 'birch' ? mix(palette.birch.bark, palette.birch.inner, 0.45) : mix(palette.oak.light, palette.oak.bark, 0.35);
+  pastelFill(x, pen, body, bark, -0.1, 1.5, { stroke: Math.max(2, H * 0.32), under: 1, cross: 0.15, tones: [bark, bark, shade], grain: false });
+  // Нижняя тень брёвнышка.
+  const low = roundRectPts(pen, 2, H * 0.62, W - 4, H * 0.32, H * 0.15);
+  pastelFill(x, pen, low, shade, 0, 1.2, { stroke: Math.max(2, H * 0.25), under: 0.6, cross: 0, grain: false });
+  if (kind === 'birch') {
+    const marks = [
+      [0.2, 0.32],
+      [0.44, 0.62],
+      [0.62, 0.3],
+    ];
+    for (const [u, v] of marks) {
+      const mx = W * u;
+      const my = H * v;
+      pastelStroke(x, pen, [{ x: mx - H * 0.24, y: my }, { x: mx + H * 0.24, y: my + 0.5 }], Math.max(1.6, H * 0.2), palette.birch.mark, 1, { taper: 0.3, grain: false });
+    }
+  } else {
+    // Волокна дуба.
+    for (const v of [0.35, 0.6]) pastelStroke(x, pen, [{ x: H * 0.4, y: H * v }, { x: W - H * 0.9, y: H * v + 0.5 }], Math.max(1, H * 0.07), palette.oak.ring, 0.8, { taper: 0.4, grain: false });
   }
+  // Торец справа.
+  const ex = W - H * 0.42;
+  const endCol = kind === 'birch' ? palette.birch.inner : palette.oak.end;
+  const end = ellipsePts(ex, H / 2, H * 0.3, H * 0.4, 14);
+  pastelFill(x, pen, end, endCol, 0.3, 1.5, { stroke: Math.max(1.5, H * 0.2), under: 1, cross: 0, grain: false });
+  for (let k = 1; k <= (kind === 'oak' ? 2 : 1); k++) {
+    const ring = ellipsePts(ex, H / 2, H * 0.3 * (k / 3), H * 0.4 * (k / 3), 10);
+    pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, H * 0.06), kind === 'oak' ? palette.oak.ring : palette.oak.end, 1, { taper: 0, grain: false });
+  }
+  // Тёмная обводка: соседние поленья не сливаются.
+  x.save();
+  x.strokeStyle = palette.paper;
+  x.lineWidth = 1.4;
+  x.beginPath();
+  body.forEach((p, i) => (i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y)));
+  x.closePath();
+  x.stroke();
+  x.restore();
   return c;
 }
 
+function birchIcon(rc: RC): HTMLCanvasElement {
+  return logIcon(rc, 'birch');
+}
+
 function oakIcon(rc: RC): HTMLCanvasElement {
-  const gs = gaugeSize(rc.C);
-  const W = gs.slotW * 2 + gs.gap;
-  const [c, x] = canvasFor(W, gs.slotH);
-  const pen = makePen(rc.seed * 193, 0, 0);
-  const o = palette.oak;
-  const body = roundRectPts(pen, 0.5, 0.5, W - 1, gs.slotH - 1, gs.slotH * 0.4);
-  pastelFill(x, pen, body, o.light, 0, 1.4, { stroke: Math.max(2, gs.slotH * 0.3), under: 1, cross: 0.2, tones: [o.light, mix(o.light, o.end, 0.5)], grain: false });
-  const ex = W - gs.slotH * 0.45;
-  const end = ellipsePts(ex, gs.slotH / 2, gs.slotH * 0.3, gs.slotH * 0.42, 12);
-  pastelFill(x, pen, end, o.end, 0, 1.4, { stroke: Math.max(1.5, gs.slotH * 0.2), under: 1, grain: false });
-  for (let k = 1; k <= 2; k++) {
-    const r = ellipsePts(ex, gs.slotH / 2, gs.slotH * 0.3 * (k / 3), gs.slotH * 0.42 * (k / 3), 10);
-    pastelStroke(x, pen, r.concat([r[0]]), Math.max(1, gs.slotH * 0.06), o.ring, 1, { taper: 0, grain: false });
-  }
-  return c;
+  return logIcon(rc, 'oak');
 }
 
 function hatchIcon(rc: RC): HTMLCanvasElement {

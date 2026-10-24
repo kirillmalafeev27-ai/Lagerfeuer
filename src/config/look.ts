@@ -28,7 +28,7 @@ export const look = {
   hero: { h: 1.25, w: 0.8 },
   tent: { w: 1.4, h: 1.05 },
   pile: { w: 1.3, h: 0.95 },
-  gauge: { slotW: 0.27, slotH: 0.16, gap: 0.03, padX: 0.06, padY: 0.05 },
+  gauge: { slotW: 0.28, slotH: 0.19, gap: 0.03, padX: 0.06, padY: 0.05 },
   ring: { r: 0.5, squash: 0.42 },
   eyes: { w: 0.32, h: 0.12 },
   wolf: { w: 0.95, h: 0.72 },

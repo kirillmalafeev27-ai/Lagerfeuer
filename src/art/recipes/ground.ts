@@ -146,7 +146,7 @@ export function drawForestFloor(rc: RC): Tex {
         });
       });
     }
-    L.end(pen.rng, 0.3);
+    L.end(pen.rng, 0.12);
   }
   // Хвоинки процарапаны.
   sgraffito(x, pen, scratches(pen, [{ x: 0, y: 0 }, { x: S, y: S }], 140, C * 0.08, 0.4, 3), Math.max(1, C * 0.009));
@@ -178,7 +178,7 @@ export function drawForestFloor(rc: RC): Tex {
         } else grassTuft(L.ctx, pen, cx + dx, cy + dy, C * 0.16, [f.fern, g.needles, f.firLight]);
       });
     }
-    L.end(pen.rng, 0.24);
+    L.end(pen.rng, 0.1);
   }
   return tex('floor', c, 0, 0);
 }
@@ -301,7 +301,7 @@ export function drawClearing(rc: RC): Tex {
         for (let j = 0; j < 3; j++) fernFrond(L.ctx, pen, px, py, C * (0.18 + pen.rng() * 0.1), a + (j - 1) * 0.5 - 0.3, f.fern, f.firLight);
       } else grassTuft(L.ctx, pen, px, py, C * (0.13 + pen.rng() * 0.07), [f.fern, g.needles, f.firLight]);
     }
-    L.end(pen.rng, 0.2);
+    L.end(pen.rng, 0.08);
   }
 
   // Кольца камней вокруг кострищ.
