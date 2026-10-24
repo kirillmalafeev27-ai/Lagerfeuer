@@ -24,7 +24,9 @@ for (const sl of slots.length ? slots : [slot0]) {
     const parts: string[] = [];
     for (const b of bots) {
       const r = simulate(level, b, runs, Number(get('tmed') ?? 5), Number(get('p') ?? 0.8), 7);
-      parts.push(`${b} ${((100 * r.win) / r.runs).toFixed(1)}% ★★+ ${((100 * (r.stars[2] + r.stars[3])) / r.runs).toFixed(0)}% ★★★ ${((100 * r.stars[3]) / r.runs).toFixed(0)}%`);
+      parts.push(
+        `${b} ${((100 * r.win) / r.runs).toFixed(1)}% ★★+ ${((100 * (r.stars[2] + r.stars[3])) / r.runs).toFixed(0)}% ★★★ ${((100 * r.stars[3]) / r.runs).toFixed(0)}%`,
+      );
     }
     console.log(`L${String(level)} slotA=${sl} nightA=${ni}: ${parts.join(' | ')}`);
   }

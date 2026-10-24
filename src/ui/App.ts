@@ -127,6 +127,12 @@ export class App {
       words: 'de',
     });
     if (!s.reducedMotionSet) s.reducedMotion = reducedPref;
+    // dev: ?quality=high|low — фиксированное качество без автопереключения (тесты, снимки).
+    const forcedQuality = opts.dev ? new URLSearchParams(location.search).get('quality') : null;
+    if (forcedQuality === 'high' || forcedQuality === 'low') {
+      s.quality = forcedQuality;
+      this.autoLowDone = true;
+    }
     this.settings = s;
     this.progress = readJson<Progress>(this.store, 'progress', { unlocked: ['1'], best: {} });
     this.tutorial = readJson<Record<Tutorial, boolean>>(this.store, 'tutorial', {
@@ -794,7 +800,8 @@ export class App {
     s.tent = 3;
     s.hero.cell = 0;
     for (const f of s.fires) {
-      if (fires === 'embers') {
+      // mixed: северный костёр полный, остальные — на углях.
+      if (fires === 'embers' || (fires === 'mixed' && f.side !== 0)) {
         f.fuel = 0;
         f.logs = [];
         f.embers = 2.8;

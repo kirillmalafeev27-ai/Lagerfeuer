@@ -29,7 +29,8 @@ function parseArgs(argv: string[]): Args {
       ? [...LEVEL_IDS]
       : lv.split(',').map((x) => (x === 'inf' || x === '∞' ? 'inf' : (Number(x) as LevelId)));
   const b = get('bot') ?? 'all';
-  const bots: BotName[] = b === 'all' ? ['mixed', 'birch', 'oak', 'planner'] : (b.split(',') as BotName[]);
+  const bots: BotName[] =
+    b === 'all' ? ['mixed', 'birch', 'oak', 'planner'] : (b.split(',') as BotName[]);
   const runs = Number(get('runs') ?? 1000);
   return {
     levels,
@@ -58,7 +59,14 @@ export interface BotReport {
   stretched: number;
 }
 
-export function simulate(level: LevelId, bot: BotName, runs: number, tMed: number, p: number, seed: number): BotReport {
+export function simulate(
+  level: LevelId,
+  bot: BotName,
+  runs: number,
+  tMed: number,
+  p: number,
+  seed: number,
+): BotReport {
   const rep: BotReport = {
     level,
     bot,
@@ -107,7 +115,9 @@ function printReport(r: BotReport): void {
       r.bot.padEnd(8),
       `win ${pct(r.win, n)}`,
       `★ ${pct(r.stars[1], n)} ★★ ${pct(r.stars[2], n)} ★★★ ${pct(r.stars[3], n)}`,
-      lost ? `lost: near ${pct(r.causeNear, lost)} far ${pct(r.causeFar, lost)} gust ${pct(r.causeGust, lost)}` : 'lost: —',
+      lost
+        ? `lost: near ${pct(r.causeNear, lost)} far ${pct(r.causeFar, lost)} gust ${pct(r.causeGust, lost)}`
+        : 'lost: —',
       `birch ${(r.birch / n).toFixed(1)} oak ${(r.oak / n).toFixed(1)} embers ${(r.embers / n).toFixed(2)}`,
       r.stretched ? `stretched ${r.stretched}` : '',
     ].join(' | '),
@@ -135,15 +145,31 @@ export function checkTargets(runs: number, plannerRuns: number, seed: number): b
     const m = simulate(level, 'mixed', runs, 5, 0.8, seed);
     mixed.set(level, m);
     const [lo, hi] = range[String(level)];
-    add(`mixed L${String(level)} in ${lo}–${hi}%`, win(m) >= lo && win(m) <= hi, `${win(m).toFixed(1)}%`);
+    add(
+      `mixed L${String(level)} in ${lo}–${hi}%`,
+      win(m) >= lo && win(m) <= hi,
+      `${win(m).toFixed(1)}%`,
+    );
     if (level !== 1 && level !== 2 && level !== 3) {
       const b = simulate(level, 'birch', runs, 5, 0.8, seed);
-      add(`birch-only L${String(level)} ≥10 pts below mixed`, win(b) <= win(m) - 10, `${win(b).toFixed(1)}% vs ${win(m).toFixed(1)}%`);
+      add(
+        `birch-only L${String(level)} ≥10 pts below mixed`,
+        win(b) <= win(m) - 10,
+        `${win(b).toFixed(1)}% vs ${win(m).toFixed(1)}%`,
+      );
       const o = simulate(level, 'oak', runs, 5, 0.8, seed);
-      add(`oak-only ★★ L${String(level)} ≤ half of mixed`, s2(o) <= s2(m) / 2, `${s2(o).toFixed(1)}% vs ${s2(m).toFixed(1)}%`);
+      add(
+        `oak-only ★★ L${String(level)} ≤ half of mixed`,
+        s2(o) <= s2(m) / 2,
+        `${s2(o).toFixed(1)}% vs ${s2(m).toFixed(1)}%`,
+      );
     }
     const pl = simulate(level, 'planner', plannerRuns, 5, 0.8, seed);
-    add(`planner L${String(level)} ≥ mixed − 3`, win(pl) >= win(m) - 3, `${win(pl).toFixed(1)}% vs ${win(m).toFixed(1)}%`);
+    add(
+      `planner L${String(level)} ≥ mixed − 3`,
+      win(pl) >= win(m) - 3,
+      `${win(pl).toFixed(1)}% vs ${win(m).toFixed(1)}%`,
+    );
     if (level === 4 || level === 5 || level === 6) {
       add(`planner ★★★ L${String(level)} ≥ 10%`, s3(pl) >= 10, `${s3(pl).toFixed(1)}%`);
     }
@@ -189,11 +215,19 @@ if (isMain && process.argv.includes('--check')) {
     for (const bot of a.bots) {
       if (bot === 'oak' && level === 1) continue;
       const t0 = performance.now();
-      const r = simulate(level, bot, bot === 'planner' ? a.plannerRuns : a.runs, a.tMed, a.p, a.seed);
+      const r = simulate(
+        level,
+        bot,
+        bot === 'planner' ? a.plannerRuns : a.runs,
+        a.tMed,
+        a.p,
+        a.seed,
+      );
       all.push(r);
       if (!a.json) {
         printReport(r);
-        if (bot === 'planner') console.log(`        (planner ${((performance.now() - t0) / 1000).toFixed(1)}s)`);
+        if (bot === 'planner')
+          console.log(`        (planner ${((performance.now() - t0) / 1000).toFixed(1)}s)`);
       }
     }
   }

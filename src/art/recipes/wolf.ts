@@ -228,8 +228,8 @@ function eyesTex(rc: RC): HTMLCanvasElement {
   const H = Math.ceil(C * look.eyes.h * 2.6);
   const [c, x] = canvasFor(W, H);
   const pen = makePen(rc.seed * 97 + 1, 0, 0);
-  const ew = C * 0.1;
-  const eh = C * 0.055;
+  const ew = C * 0.12;
+  const eh = C * 0.066;
   for (const k of [-1, 1]) {
     const cx = W / 2 + k * C * 0.1;
     const cy = H / 2;
@@ -252,7 +252,7 @@ function eyesTex(rc: RC): HTMLCanvasElement {
         { x: cx + k * 1, y: cy - eh * 0.4 },
         { x: cx, y: cy + eh * 0.4 },
       ],
-      Math.max(1.6, C * 0.014),
+      Math.max(1.3, C * 0.011),
       palette.paper,
       1,
       { taper: 0.4 },
@@ -292,7 +292,8 @@ export function drawWolves(rc: RC): Tex[] {
       (cv, v) => out.push(tex(boil(key, v), cv, 0.47, groundOy(cv))),
     );
   }
-  out.push(tex(K.eyes, eyesTex(rc)));
-  out.push(tex(K.eyeGlow, eyeGlowTex(rc)));
+  // Глаза без зерна: они светятся и должны читаться в любой темноте (8.6).
+  out.push(tex(K.eyes, eyesTex(rc), 0.5, 0.5, 0));
+  out.push(tex(K.eyeGlow, eyeGlowTex(rc), 0.5, 0.5, 0));
   return out;
 }

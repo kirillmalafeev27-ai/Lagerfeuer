@@ -359,14 +359,16 @@ export function drawClearing(rc: RC): Tex {
     for (let i = 0; i < 2; i++) {
       const cx = X(i + 0.5) + (pen.rng() - 0.5) * C * 0.04;
       const cy = Y(j + 0.5) + (pen.rng() - 0.5) * C * 0.04;
-      smudge(x, pen, cx, cy, C * 0.56, g.base, 0.55, 0.92);
+      // Утоптанная земля светлее окружающей: клетки читаются даже при одном фонаре (8.6).
+      const earth = mix(g.base, g.light, 0.55);
+      smudge(x, pen, cx, cy, C * 0.56, earth, 0.55, 0.92);
       const spot = blob(pen.rng, C * 0.9, C * 0.84, { cx, cy, irregularity: 0.13, points: 11 });
-      pastelFill(x, pen, spot, g.base, -0.78 + (pen.rng() - 0.5) * 0.5, 1.1, {
+      pastelFill(x, pen, spot, earth, -0.78 + (pen.rng() - 0.5) * 0.5, 1.1, {
         stroke: C * 0.07,
-        under: 0.42,
+        under: 0.66,
         cross: 0.45,
         pressure: 0.8,
-        tones: [g.base, mix(g.base, g.light, 0.35), g.base, mix(g.base, g.dark, 0.2)],
+        tones: [earth, mix(earth, g.light, 0.5), earth, g.base],
         len: 0.32,
       });
       const hi = blob(pen.rng, C * 0.56, C * 0.46, {

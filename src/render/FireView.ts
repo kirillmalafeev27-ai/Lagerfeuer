@@ -149,6 +149,7 @@ export class FireView {
   private gaugeBlink = 0;
   private wolfShown = 0;
   private wolfJump = 0;
+  private lastT = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -589,6 +590,7 @@ export class FireView {
   }
 
   private updateEyes(f: Fire, fr: FireFrame, dtMs: number, timeMs: number): void {
+    this.lastT = timeMs;
     const embers = f.embers !== null;
     const level = fr.dawnDone ? 0 : f.lowLevel;
     const want = [level >= 1 ? 1 : 0, level >= 2 ? 1 : 0, level >= 2 ? 1 : 0];
@@ -651,9 +653,9 @@ export class FireView {
     };
   }
 
-  /** Позиции глаз (для теста темноты и заставки). */
-  eyePositions(): Array<{ x: number; y: number; a: number }> {
-    return this.eyes.map((e) => ({ x: e.x, y: e.y, a: e.alpha }));
+  /** Позиции глаз (для теста темноты и заставки); open — глаза не моргают в этот кадр. */
+  eyePositions(): Array<{ x: number; y: number; a: number; open: boolean }> {
+    return this.eyes.map((e) => ({ x: e.x, y: e.y, a: e.alpha, open: this.lastT >= e.blinkUntil }));
   }
 
   get wolfVisible(): boolean {

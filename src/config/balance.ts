@@ -117,11 +117,11 @@ export const light = {
   emberRadius: 0.6,
   emberStrength: 0.35,
   flashExtraRadius: 0.8,
-  lanternStrength: 0.6,
+  lanternStrength: 0.75,
   moonStrength: 0.08,
   windLean: 0.22,
   maxErasesPerFrame: 12,
-  glowAlphaFire: 0.55,
+  glowAlphaFire: 0.9,
   glowAlphaEmber: 0.5,
 } as const;
 

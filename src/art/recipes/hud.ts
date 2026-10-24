@@ -395,11 +395,13 @@ export function drawHud(rc: RC): Tex[] {
 
 /** Кисти света: радиальная прозрачность с зернистым краем, по 3 варианта под кипение. */
 export function drawBrushes(rc: RC): Tex[] {
-  const size = rc.C >= 128 ? 320 : 224;
+  // Кисти крупные: при радиусе света в 2.5 клетки мелкая кисть растягивается и зерно рябит.
+  const size = rc.C >= 128 ? 448 : 288;
   const out: Tex[] = [];
   for (let i = 0; i < 3; i++)
-    out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size)));
-  out.push(tex(K.brushSoft, lightBrush(mulberry32(rc.seed * 251), size, 0.15, 0.3, 0.35)));
+    out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size, 0.38, 0.3, 0.8)));
+  // Мягкая кисть фонаря: ровная середина на всю поляну (8.2), край растёрт.
+  out.push(tex(K.brushSoft, lightBrush(mulberry32(rc.seed * 251), size, 0.5, 0.3, 0.35)));
   {
     // Маска неба: сверху полная, к низу полосы зернисто сходит на нет.
     const [c, x] = canvasFor(64, 64);
