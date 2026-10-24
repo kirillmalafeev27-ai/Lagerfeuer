@@ -35,7 +35,7 @@ export const palette = {
   oak: { bark: '#5a3b24', light: '#7d5634', end: '#c58a4a', ring: '#8a5a2e' },
 
   // лагерь
-  tent: { canvas: '#c9b37c', shade: '#97845a', patch: '#8fb3c9', lantern: '#ffd36b' },
+  tent: { canvas: '#c9b37c', shade: '#97845a', patch: '#8c9a6a', lantern: '#ffd36b' }, // заплатки — шалфей: голубой занят подсказками
   sausage: '#a8674f',
 
   // герой — тот же искатель серии, по-ночному

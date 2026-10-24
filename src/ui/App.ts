@@ -109,6 +109,8 @@ export class App {
   private lastFrame = performance.now();
   private raf = 0;
   private finished = false;
+  /** Сколько заняла генерация текстур, мс (бюджет 13.6 — до 2 с). */
+  private genMs = 0;
 
   constructor(container: HTMLElement, opts: MountOptions) {
     this.opts = opts;
@@ -215,6 +217,7 @@ export class App {
         scene: () => this.scene,
         state: () => this.ctl?.state ?? null,
         screen: () => this.screen,
+        genMs: () => this.genMs,
         correct: () => this.panel.debugCorrectIndex(),
         answer: (i: number) => this.panel.answerKey(i),
         options: () => this.layout.question.querySelectorAll('.bf-option').length,
@@ -271,6 +274,7 @@ export class App {
       host: this.host,
       seed,
       onProgress: (p: { done: number; total: number }) => this.loading?.progress(p.done / p.total),
+      onGenerated: (ms: number) => (this.genMs = ms),
     });
     const off = this.layout.onResize(() => this.resizeCanvas());
     this.cleanups.push(off);
@@ -912,7 +916,7 @@ export class App {
     }
     const fps = Math.round(this.game?.loop.actualFps ?? 0);
     const lines = [
-      `FPS ${fps}  seed ${s.seed}`,
+      `FPS ${fps}  seed ${s.seed}  арт ${Math.round(this.genMs)} мс`,
       `T_med ${s.tMed.toFixed(2)}  p ${s.p.toFixed(2)}  A ${s.A.toFixed(2)}`,
       `ночь ${(s.t / s.nightA).toFixed(3)}  (${s.t.toFixed(1)}/${s.nightA.toFixed(1)} A)`,
       ...s.fires.map(

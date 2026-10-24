@@ -59,9 +59,20 @@ export function makeCanvas(w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
+/**
+ * Контекст холста генерации — растр на процессоре (willReadFrequently): тысячи мелких
+ * отпечатков, чтение пикселей и toDataURL не ждут видеокарту, а готовая канва потом один раз
+ * загружается в WebGL.
+ */
+const ctxCache = new WeakMap<HTMLCanvasElement, CanvasRenderingContext2D>();
+const CTX_OPTS: CanvasRenderingContext2DSettings = { willReadFrequently: true };
+
 export function ctx2d(c: HTMLCanvasElement): CanvasRenderingContext2D {
-  const x = c.getContext('2d', { willReadFrequently: false });
+  const hit = ctxCache.get(c);
+  if (hit) return hit;
+  const x = c.getContext('2d', CTX_OPTS);
   if (!x) throw new Error('2d context unavailable');
+  ctxCache.set(c, x);
   return x;
 }
 
@@ -703,7 +714,8 @@ interface StripSet {
 }
 
 const stripSets = new Map<string, StripSet>();
-const tintedStripSets = new Map<string, HTMLCanvasElement[][]>();
+/** Тонированные мазки: по цвету — массив длин, длина тонируется при первом использовании. */
+const tintedStripSets = new Map<string, Array<HTMLCanvasElement[] | null>>();
 
 function stripSet(kind: BrushKind, wi: number): StripSet {
   const id = `${kind}|${wi}`;
@@ -739,23 +751,25 @@ function stripSet(kind: BrushKind, wi: number): StripSet {
   return set;
 }
 
-function tintedStrips(kind: BrushKind, wi: number, color: string): HTMLCanvasElement[][] {
+function tintedStrip(kind: BrushKind, wi: number, color: string, bi: number): HTMLCanvasElement[] {
   const key = `${kind}|${wi}|${color}`;
-  const hit = tintedStripSets.get(key);
+  let entry = tintedStripSets.get(key);
+  if (!entry) {
+    entry = STRIP_UNITS.map(() => null);
+    tintedStripSets.set(key, entry);
+  }
+  const hit = entry[bi];
   if (hit) return hit;
-  const set = stripSet(kind, wi);
-  const out = set.strips.map((vs) =>
-    vs.map((d) => {
-      const c = makeCanvas(d.width, d.height);
-      const x = ctx2d(c);
-      x.drawImage(d, 0, 0);
-      x.globalCompositeOperation = 'source-in';
-      x.fillStyle = color;
-      x.fillRect(0, 0, d.width, d.height);
-      return c;
-    }),
-  );
-  tintedStripSets.set(key, out);
+  const out = stripSet(kind, wi).strips[bi].map((d) => {
+    const c = makeCanvas(d.width, d.height);
+    const x = ctx2d(c);
+    x.drawImage(d, 0, 0);
+    x.globalCompositeOperation = 'source-in';
+    x.fillStyle = color;
+    x.fillRect(0, 0, d.width, d.height);
+    return c;
+  });
+  entry[bi] = out;
   return out;
 }
 
@@ -780,14 +794,14 @@ export function strip(
       wi = i;
   }
   const set = stripSet(kind, wi);
-  const strips = tintedStrips(kind, wi, color);
   // Длина в единицах эталонной ширины — выбрать ближайший готовый мазок.
   const want = (len * set.w) / width;
   let bi = 0;
   for (let i = 1; i < set.lens.length; i++) {
     if (Math.abs(Math.log(set.lens[i] / want)) < Math.abs(Math.log(set.lens[bi] / want))) bi = i;
   }
-  const src = strips[bi][Math.floor(pen.jit() * strips[bi].length)];
+  const variants = tintedStrip(kind, wi, color, bi);
+  const src = variants[Math.floor(pen.jit() * variants.length)];
   const ang = Math.atan2(y1 - y0, x1 - x0);
   const sx = len / set.lens[bi];
   const sy = width / set.w;

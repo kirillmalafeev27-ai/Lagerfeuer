@@ -86,8 +86,7 @@ export class BootScene extends Phaser.Scene {
     const max = Math.max(1, Math.min(32, renderer.maxTextures ?? 16));
     const keys = this.textures.getTextureKeys().slice(0, max);
     const imgs: Phaser.GameObjects.Image[] = [];
-    const frame = () =>
-      new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
     for (let k = 1; k <= keys.length; k++) {
       for (const im of imgs) im.destroy();
       imgs.length = 0;

@@ -396,7 +396,7 @@ export function drawHud(rc: RC): Tex[] {
 /** Кисти света: радиальная прозрачность с зернистым краем, по 3 варианта под кипение. */
 export function drawBrushes(rc: RC): Tex[] {
   // Кисти крупные: при радиусе света в 2.5 клетки мелкая кисть растягивается и зерно рябит.
-  const size = rc.C >= 128 ? 448 : 288;
+  const size = rc.C >= 128 ? 384 : 256;
   const out: Tex[] = [];
   for (let i = 0; i < 3; i++)
     out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size, 0.38, 0.3, 0.8)));
