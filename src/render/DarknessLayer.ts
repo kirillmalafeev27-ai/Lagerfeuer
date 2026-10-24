@@ -73,6 +73,7 @@ export class DarknessLayer {
     fillAlpha: number,
     stamps: readonly LightStamp[],
     sky: { top: number; bottom: number; strength: number } | null,
+    color: string = palette.paper,
   ): void {
     if (this.fallback) {
       if (this.vignette) this.vignette.setAlpha(Math.min(1, fillAlpha / light.nightAlpha));
@@ -87,7 +88,7 @@ export class DarknessLayer {
       rt.render();
       return;
     }
-    rt.fill(hex(palette.paper), fillAlpha);
+    rt.fill(hex(color), fillAlpha);
     if (sky && sky.strength > 0) {
       const top = (sky.top - this.view.y) * k;
       const hgt = (sky.bottom - sky.top) * k;

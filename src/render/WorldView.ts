@@ -45,6 +45,7 @@ function overlaps(a: Rect, b: Rect): boolean {
 export class WorldView {
   private readonly scene: Phaser.Scene;
   private readonly decor: Phaser.GameObjects.GameObject[] = [];
+  private readonly floor: Phaser.GameObjects.TileSprite;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -59,8 +60,18 @@ export class WorldView {
     floor.setOrigin(0, 0);
     floor.setTileScale(artScale(), artScale());
     floor.setDepth(DEPTH.floor);
+    this.floor = floor;
     const bg = artImage(scene, 0, 0, K.bg);
     bg.setDepth(DEPTH.ground);
+  }
+
+  /** Подстилка начинается у горизонта: выше неё — полоса неба. Узор плитки не сдвигается. */
+  setSkyBottom(y: number): void {
+    const w = look.world;
+    const top = Math.max(w.top * CELL, y);
+    this.floor.setPosition(w.left * CELL, top);
+    this.floor.setSize((w.right - w.left) * CELL, w.bottom * CELL - top);
+    this.floor.tilePositionY = (top - w.top * CELL) / artScale();
   }
 
   /** Расставить лес и укрытия под раскладку раунда. */

@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { balance, light, timing } from '../config/balance.ts';
 import { hintFlags } from '../config/levels.ts';
 import { look } from '../config/look.ts';
+import { hex, mix, palette } from '../config/palette.ts';
 import { K } from '../art/manifest.ts';
 import { makeMixedBot } from '../core/bots.ts';
 import { type Cell, type Side, SIDES, cellRow } from '../core/clearing.ts';
@@ -73,6 +74,8 @@ export class GameScene extends Phaser.Scene {
   private world!: WorldView;
   private sky!: SkyView;
   private dark!: DarknessLayer;
+  /** Тёплая заливка рассвета поверх тьмы. */
+  private sunWash!: Phaser.GameObjects.Image;
   private juice!: Juice;
   private hints!: HintsView;
   private readonly boil = new BoilClock(timing.boilFps);
@@ -101,10 +104,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(0x15131c);
+    this.cameras.main.setBackgroundColor(hex(palette.paper));
     this.world = new WorldView(this);
     this.sky = new SkyView(this);
     this.dark = new DarknessLayer(this, this.host.darkFallback);
+    this.sunWash = this.add
+      .image(0, 0, K.white)
+      .setOrigin(0, 0)
+      .setTint(hex(palette.dawn.peach))
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.dark + 2)
+      .setVisible(false);
     this.juice = new Juice(this);
     this.hints = new HintsView(this);
     this.layout();
@@ -147,6 +157,7 @@ export class GameScene extends Phaser.Scene {
     cam.centerOn(cx * CELL, centerY * CELL);
     this.view = { x: (cx - viewWc / 2) * CELL, y: top * CELL, w: viewWc * CELL, h: viewHc * CELL };
     this.sky.layout(this.view, this.skyCells);
+    this.world.setSkyBottom(this.sky.bottom);
     this.dark.layout(this.view, W, Hh, this.host.quality === 'low');
     for (const f of this.fires) f.layoutEyes(this.view, this.sky.top, this.skyCells * CELL);
   }
@@ -687,11 +698,22 @@ export class GameScene extends Phaser.Scene {
         brush: K.brush((this.boil.variant(fv.side) + fv.side) % 3),
       });
     }
-    this.dark.draw(fill, stamps, {
-      top: this.sky.top,
-      bottom: this.sky.bottom + 0.15 * CELL,
-      strength: 0.5 * (1 - dawnK),
-    });
+    // Луна и солнце светят сквозь тьму своим пятном.
+    for (const l of this.sky.lights()) stamps.push({ ...l, brush: K.brushSoft });
+    // К утру чёрная бумага тьмы лиловеет, на восходе сцену заливает персиковый свет.
+    const dawnTint = mix(palette.paper, palette.dawn.violet, 0.4 * Math.max(dawnK, this.sunrise));
+    this.dark.draw(
+      fill,
+      stamps,
+      { top: this.sky.top, bottom: this.sky.bottom + 0.15 * CELL, strength: 0.72 * (1 - dawnK) },
+      dawnTint,
+    );
+    const wash = 0.07 * dawnK + 0.13 * this.sunrise;
+    this.sunWash
+      .setVisible(wash > 0.004)
+      .setPosition(this.view.x, this.view.y)
+      .setDisplaySize(this.view.w, this.view.h)
+      .setAlpha(wash);
     this.juice.update(dt);
   }
 

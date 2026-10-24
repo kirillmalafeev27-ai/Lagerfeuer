@@ -37,14 +37,14 @@ export class SkyView {
   constructor(scene: Phaser.Scene) {
     this.night = artImage(scene, 0, 0, K.skyNight).setDepth(DEPTH.sky);
     this.dawn = artImage(scene, 0, 0, K.skyDawn).setDepth(DEPTH.skyDawn).setAlpha(0);
-    this.moon = artImage(scene, 0, 0, K.moon).setDepth(DEPTH.over - 6);
-    this.sun = artImage(scene, 0, 0, K.sun)
-      .setDepth(DEPTH.over - 6)
-      .setAlpha(0);
+    // Луна и солнце — за силуэтами елей и подстилкой: восходят и садятся за горизонт.
+    // Яркими их держит своё стирание в слое тьмы (moonLight).
+    this.moon = artImage(scene, 0, 0, K.moon).setDepth(DEPTH.moon);
+    this.sun = artImage(scene, 0, 0, K.sun).setDepth(DEPTH.sun).setAlpha(0);
     this.horizon = artImage(scene, 0, 0, K.skyHorizon).setDepth(DEPTH.horizon);
     for (let i = 0; i < 14; i++) {
       const img = artImage(scene, 0, 0, K.starDot(i % 3))
-        .setDepth(DEPTH.over - 7)
+        .setDepth(DEPTH.stars)
         .setBlendMode(Phaser.BlendModes.ADD);
       this.stars.push({
         img,
@@ -77,6 +77,17 @@ export class SkyView {
     this.horizon.setPosition(cx, this.bottom + 0.06 * CELL).setScale(artScale() * sx, artScale());
   }
 
+  /** Где светят луна и солнце: им нужно стирание в слое тьмы. */
+  lights(): Array<{ x: number; y: number; r: number; strength: number }> {
+    const out: Array<{ x: number; y: number; r: number; strength: number }> = [];
+    const k = Math.min(1, this.skyH / (1.1 * CELL));
+    if (this.moon.alpha > 0.02 && this.moon.y < this.bottom + 0.1 * CELL)
+      out.push({ x: this.moon.x, y: this.moon.y, r: 0.42 * k, strength: this.moon.alpha });
+    if (this.sun.alpha > 0.02 && this.sun.y < this.bottom + 0.1 * CELL)
+      out.push({ x: this.sun.x, y: this.sun.y, r: 0.5 * k, strength: this.sun.alpha });
+    return out;
+  }
+
   update(
     timeMs: number,
     nightShare: number,
@@ -89,13 +100,8 @@ export class SkyView {
     const mt = Math.min(1, nightShare / 0.8);
     const mx = v.x + v.w * (0.1 + 0.8 * mt);
     const arc = Math.sin(mt * Math.PI);
-    const my =
-      this.bottom +
-      0.1 * CELL -
-      arc * (this.skyH * 0.72) +
-      (mt > 0.92 ? (mt - 0.92) * 6 * CELL : 0);
-    const setFade = mt > 0.86 ? Math.max(0, 1 - (mt - 0.86) / 0.14) : 1;
-    this.moon.setPosition(mx, my).setAlpha(setFade * (1 - dawnK));
+    const my = this.bottom + 0.12 * CELL - arc * (this.skyH * 0.78);
+    this.moon.setPosition(mx, my).setAlpha(1 - dawnK);
     this.moon.setScale(artScale() * Math.min(1, this.skyH / (1.1 * CELL)));
     // Звёзды мерцают и гаснут к рассвету.
     for (const s of this.stars) {
@@ -106,7 +112,12 @@ export class SkyView {
     // Солнце встаёт на победе.
     const sunX = v.x + v.w * 0.78;
     this.sun
-      .setPosition(sunX, this.bottom + 0.25 * CELL - sunrise * this.skyH * 0.75)
+      .setPosition(
+        sunX,
+        this.bottom +
+          0.3 * CELL -
+          sunrise * (this.bottom + 0.3 * CELL - (this.top + this.skyH * 0.4)),
+      )
       .setAlpha(Math.min(1, sunrise * 1.5 + dawnK * 0.25));
     this.sun.setScale(artScale() * Math.min(1, this.skyH / (1.1 * CELL)));
     // Птицы на рассвете.
