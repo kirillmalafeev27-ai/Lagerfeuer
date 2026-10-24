@@ -187,7 +187,8 @@
 
 .bf-option {
   appearance: none;
-  min-height: 56px;
+  /* 56 px — видимая светлая часть таблички; ещё 2 × 7 px — меловая рамка. */
+  min-height: 70px;
   padding: 6px 12px;
   font: inherit;
   font-weight: 500;

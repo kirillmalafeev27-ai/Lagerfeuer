@@ -40,25 +40,35 @@ function fir(pen: Pen, C: number, hCells: number, wCells: number): HTMLCanvasEle
     1,
     { taper: 0.05 },
   );
+  // Ярусы внахлёст: вершина каждого яруса уходит под юбку верхнего, снизу виден ствол.
   const tiers = 4 + Math.floor(pen.rng() * 2);
-  const top = C * 0.1;
-  const span = ground - C * 0.28 - top;
+  const top = C * 0.08;
+  const base = ground - C * 0.3;
+  const step = (base - top) / (tiers - 0.3);
   for (let i = tiers - 1; i >= 0; i--) {
     const t = i / (tiers - 1);
-    const y = top + t * span;
-    const half = (W / 2 - C * 0.1) * (0.25 + t * 0.75) * (0.92 + pen.rng() * 0.12);
-    const drop = C * (0.14 + t * 0.12);
+    const skirt = top + step * (i + 0.7);
+    const apex = i === 0 ? top : top + step * (i - 0.3);
+    const y = skirt;
+    const half = (W / 2 - C * 0.1) * (0.3 + t * 0.7) * (0.92 + pen.rng() * 0.12);
+    const drop = C * (0.07 + t * 0.07);
+    // Юбка яруса — зубчиками хвои от правого кончика к левому.
+    const skirtPts: Pt[] = [];
+    const teeth = 7;
+    for (let k = 1; k < teeth; k++) {
+      const u = 1 - (2 * k) / teeth;
+      const sag = drop * (0.55 + 0.25 * (1 - Math.abs(u)));
+      skirtPts.push({ x: cx + half * u, y: y + sag + (k % 2 ? drop * 0.35 : -drop * 0.1) });
+    }
     const tier: Pt[] = [
-      { x: cx + (pen.rng() - 0.5) * 3, y: y - C * 0.2 - (1 - t) * C * 0.08 },
-      { x: cx + half * 0.55, y: y + drop * 0.35 },
+      { x: cx + (pen.rng() - 0.5) * 3, y: apex },
+      { x: cx + half * 0.55, y: apex + (skirt - apex) * 0.62 },
       { x: cx + half, y: y + drop },
-      { x: cx + half * 0.6, y: y + drop * 0.85 },
-      { x: cx + half * 0.2, y: y + drop * 1.0 },
-      { x: cx - half * 0.2, y: y + drop * 1.0 },
-      { x: cx - half * 0.6, y: y + drop * 0.85 },
+      ...skirtPts,
       { x: cx - half, y: y + drop },
-      { x: cx - half * 0.55, y: y + drop * 0.35 },
+      { x: cx - half * 0.55, y: apex + (skirt - apex) * 0.62 },
     ];
+    const n = tier.length;
     pastelFill(x, pen, tier, f.fir, -0.5, 1.15, {
       stroke: C * 0.05,
       under: 0.7,
@@ -66,9 +76,9 @@ function fir(pen: Pen, C: number, hCells: number, wCells: number): HTMLCanvasEle
     });
     const lit: Pt[] = [
       tier[0],
-      tier[8],
-      tier[7],
-      tier[6],
+      tier[n - 1],
+      tier[n - 2],
+      tier[n - 3],
       { x: cx - half * 0.1, y: y + drop * 0.5 },
     ];
     pastelFill(x, pen, lit, f.firLight, -0.9, 0.9, {
@@ -86,7 +96,7 @@ function fir(pen: Pen, C: number, hCells: number, wCells: number): HTMLCanvasEle
     chalkLine(
       x,
       pen,
-      [tier[0], tier[8], tier[7]],
+      [tier[0], tier[n - 1], tier[n - 2]],
       Math.max(1, C * 0.01),
       palette.chalk,
       false,
