@@ -318,8 +318,10 @@
   border: 2px solid var(--bf-chalk);
   background: transparent;
   color: var(--bf-chalk);
-  font: 400 15px 'Rubik Scribble', 'Rubik', sans-serif;
-  padding: 3px 8px;
+  font: 400 17px 'Rubik Scribble', 'Rubik', sans-serif;
+  /* Обводка цветом букв: каракули Rubik Scribble плотнеют и читаются мелко. */
+  -webkit-text-stroke: 0.9px currentColor;
+  padding: 3px 9px;
   min-height: 32px;
   cursor: pointer;
 }

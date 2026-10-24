@@ -1,4 +1,4 @@
-// Лаборатория арта (только для разработки): ?only=ключ,ключ  ?scale=0.5  ?low=1
+// Лаборатория арта (только для разработки): ?only=рецепт,рецепт  ?keys=префикс,префикс  ?scale=0.5  ?low=1
 import '@fontsource/rubik/400.css';
 import '@fontsource/rubik-scribble/400.css';
 import { configureKit } from './shared/pastelKit.ts';
@@ -10,6 +10,7 @@ import type { RC } from './art/recipes/common.ts';
 async function main(): Promise<void> {
   const q = new URLSearchParams(location.search);
   const only = q.get('only')?.split(',') ?? null;
+  const keys = q.get('keys')?.split(',') ?? null;
   const scale = Number(q.get('scale') ?? 1);
   const low = q.get('low') === '1';
   const bg = q.get('bg');
@@ -28,7 +29,7 @@ async function main(): Promise<void> {
     const dt = performance.now() - t0;
     times.push(`${r.name}: ${dt.toFixed(0)} ms (${out.length})`);
     for (const t of out) {
-      if (only && !only.some((o) => r.name.startsWith(o) || t.key.startsWith(o))) continue;
+      if (keys && !keys.some((k) => t.key.startsWith(k))) continue;
       const fig = document.createElement('figure');
       const cv = t.canvas;
       cv.style.width = `${cv.width * scale}px`;

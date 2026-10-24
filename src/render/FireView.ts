@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { balance, light, timing } from '../config/balance.ts';
 import { look } from '../config/look.ts';
 import { hex, palette } from '../config/palette.ts';
-import { FLAME_LAYERS, K } from '../art/manifest.ts';
+import { K } from '../art/manifest.ts';
 import { artScale } from '../art/registry.ts';
 import { gaugeSize } from '../art/recipes/hud.ts';
 import type { Side } from '../core/clearing.ts';
@@ -42,17 +42,44 @@ const EYE_ARCS: ReadonlyArray<ReadonlyArray<number>> = [
   [-20, -50, 10, -75],
 ];
 
-interface Tongue {
-  img: Phaser.GameObjects.Image;
+/** Язык пламени: слой, форма, место в веере и с какого топлива он появляется. */
+interface TongueDef {
   layer: number;
   shape: number;
-  /** Удалённость от середины костра: 0 — центральный язык. */
-  rank: number;
-  offset: number;
+  /** Сдвиг основания от середины, клеток. */
+  off: number;
+  /** Наклон наружу, рад. */
+  lean: number;
+  /** Доля полной высоты слоя. */
+  hf: number;
+  minFuel: number;
+  flip?: boolean;
+}
+
+// Веер: в середине самый высокий язык, боковые ниже и клонятся наружу — силуэт капли.
+const TONGUES: readonly TongueDef[] = [
+  { layer: 0, shape: 0, off: -0.15, lean: -0.42, hf: 0.5, minFuel: 1.8 },
+  { layer: 0, shape: 0, off: 0.155, lean: 0.4, hf: 0.48, minFuel: 2.2, flip: true },
+  { layer: 0, shape: 1, off: -0.085, lean: -0.2, hf: 0.74, minFuel: 0.6 },
+  { layer: 0, shape: 1, off: 0.09, lean: 0.22, hf: 0.7, minFuel: 0.9, flip: true },
+  { layer: 0, shape: 0, off: 0, lean: 0.02, hf: 1, minFuel: 0 },
+  { layer: 1, shape: 1, off: -0.07, lean: -0.24, hf: 0.72, minFuel: 1.0 },
+  { layer: 1, shape: 1, off: 0.075, lean: 0.24, hf: 0.68, minFuel: 1.4, flip: true },
+  { layer: 1, shape: 0, off: 0.01, lean: 0, hf: 1, minFuel: 0 },
+  { layer: 2, shape: 1, off: 0.035, lean: 0.14, hf: 0.7, minFuel: 1.2, flip: true },
+  { layer: 2, shape: 0, off: -0.01, lean: 0, hf: 1, minFuel: 0 },
+];
+
+interface Tongue extends TongueDef {
+  img: Phaser.GameObjects.Image;
   phase: number;
   speed: number;
   sway: number;
   boilOff: number;
+  /** Плавное появление 0..1. */
+  presence: number;
+  /** Всполох: язык ненадолго вытягивается. */
+  flick: number;
 }
 
 interface EyePair {
@@ -98,6 +125,7 @@ export class FireView {
   private readonly embers: Phaser.GameObjects.Image;
   private readonly emberGlow: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
+  private readonly bloom: Phaser.GameObjects.Image;
   private readonly sparks: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly smoke: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly leaves: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -136,31 +164,26 @@ export class FireView {
     this.glow = artImage(scene, x, y - 0.18 * CELL, K.glow).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow);
     this.emberGlow = artImage(scene, x, y, K.glowEmber).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setVisible(false);
 
-    for (let i = 0; i < 4; i++) this.logs.push(artImage(scene, x, y, K.logBirch, 0).setDepth(baseDepth + 0.01 * i).setVisible(false));
+    // Поленья: заднее и боковые — за пламенем, переднее (третье) — перед ним.
+    for (let i = 0; i < 4; i++) this.logs.push(artImage(scene, x, y, K.logBirch, 0).setDepth(baseDepth + (i === 2 ? 0.2 : 0.01 * i)).setVisible(false));
     this.embers = artImage(scene, x, y + 0.02 * CELL, K.embers, 0).setDepth(baseDepth + 0.05).setVisible(false);
 
-    // Языки пламени: 4 снаружи, 3 в середине, 2 в сердцевине.
-    const counts = [4, 3, 2];
-    const spacing = [0.12, 0.1, 0.07];
-    for (let layer = 0; layer < FLAME_LAYERS; layer++) {
-      for (let i = 0; i < counts[layer]; i++) {
-        const u = i - (counts[layer] - 1) / 2;
-        const shape = (i + layer) % 2;
-        const img = artImage(scene, x + u * spacing[layer] * CELL, y + 0.02 * CELL, K.tongue(layer, shape), 0);
-        img.setDepth(baseDepth + 0.1 + layer * 0.01 + i * 0.001);
-        this.tongues.push({
-          img,
-          layer,
-          shape,
-          rank: Math.abs(u),
-          offset: u * spacing[layer] * CELL,
-          phase: Math.random() * Math.PI * 2,
-          speed: 5 + Math.random() * 3 + layer,
-          sway: 0.08 + Math.random() * 0.06,
-          boilOff: Math.floor(Math.random() * 3),
-        });
-      }
-    }
+    // Языки пламени: веер из трёх слоёв, ближе к середине — выше по глубине.
+    TONGUES.forEach((d, i) => {
+      const img = artImage(scene, x + d.off * CELL, y, K.tongue(d.layer, d.shape), 0).setFlipX(!!d.flip);
+      img.setDepth(baseDepth + 0.1 + d.layer * 0.01 + i * 0.0005);
+      this.tongues.push({
+        ...d,
+        img,
+        phase: Math.random() * Math.PI * 2,
+        speed: 5 + Math.random() * 3 + d.layer,
+        sway: 0.06 + Math.random() * 0.05,
+        boilOff: Math.floor(Math.random() * 3),
+        presence: startFuel >= d.minFuel ? 1 : 0,
+        flick: 0,
+      });
+    });
+    this.bloom = artImage(scene, x, y, K.bloom).setBlendMode(Phaser.BlendModes.ADD).setDepth(baseDepth + 0.15);
 
     this.sparks = scene.add.particles(x, y - 0.3 * CELL, K.spark(1), {
       lifespan: { min: 700, max: 1300 },
@@ -173,7 +196,8 @@ export class FireView {
       emitting: false,
       maxParticles: 22,
     });
-    this.sparks.setDepth(DEPTH.atmosphere);
+    // Искры светятся и в темноте: они над слоем тьмы.
+    this.sparks.setDepth(DEPTH.dark + 1);
     this.smoke = scene.add.particles(x, y - 0.25 * CELL, K.smoke, {
       lifespan: { min: 1600, max: 2600 },
       speedX: { min: -10, max: 10 },
@@ -332,24 +356,34 @@ export class FireView {
       img.setScale(sc, artScale());
     }
 
-    // Языки пламени.
+    // Языки пламени: веер растёт с топливом, языки колышутся и вспыхивают.
     const fs = embers ? 0 : flameScale(fuel);
-    const visibleOuter = embers ? 0 : Math.min(4, 1 + Math.ceil(fuel * 1.1));
     const lean = fr.gust ? (this.side === 1 ? -light.windLean : this.side === 3 ? light.windLean : 0) : 0;
     const gustSquash = fr.gust && (this.side === 0 || this.side === 2) ? 0.82 : 1;
+    const ease = Math.min(1, dtMs / 220);
     for (const t of this.tongues) {
-      const centreRank = t.rank;
-      const allowed = t.layer === 0 ? visibleOuter : Math.max(1, visibleOuter - 1 - t.layer);
-      const vis = fs > 0 && centreRank <= (allowed - 1) / 2 + 0.01;
+      const want = !embers && fuel > 0.02 && fuel + 0.001 >= t.minFuel ? 1 : 0;
+      t.presence += (want - t.presence) * ease;
+      if (!fr.reducedMotion && want && t.flick <= 0 && Math.random() < dt * 0.35 * calm) t.flick = 1;
+      t.flick = Math.max(0, t.flick - dtMs / 260);
+      const vis = t.presence > 0.03 && fs > 0;
       t.img.setVisible(vis);
       if (!vis) continue;
       setArt(t.img, K.tongue(t.layer, t.shape), this.boil.variant(t.boilOff + this.boilOff));
       const wob = fr.reducedMotion ? 0 : Math.sin((timeMs / 1000) * t.speed * (0.8 + 0.4 * calm) + t.phase);
       const wob2 = fr.reducedMotion ? 0 : Math.sin((timeMs / 1000) * t.speed * 0.63 + t.phase * 1.7);
-      const h = fs * (0.8 + 0.2 * wob) * (1 - centreRank * 0.16) * gustSquash * (1 + this.flash * 0.25);
-      t.img.setScale(artScale() * (0.7 + 0.3 * fs) * (t.layer === 0 ? 1.05 : 1), artScale() * h);
-      t.img.setRotation(lean * (1 + t.layer * 0.15) + wob2 * t.sway * calm);
-      t.img.setPosition(this.pit.x + t.offset * (0.6 + 0.4 * fs), this.pit.y + 0.02 * C);
+      const flick = 1 + 0.22 * Math.sin(t.flick * Math.PI);
+      const h = fs * t.hf * t.presence * (0.86 + 0.14 * wob) * flick * gustSquash * (1 + this.flash * 0.25);
+      t.img.setScale(artScale() * (0.72 + 0.28 * fs) * (0.6 + 0.4 * t.presence), artScale() * h);
+      t.img.setRotation(t.lean * (0.6 + 0.4 * fs) + lean * (1 + t.layer * 0.15) + wob2 * t.sway * calm);
+      t.img.setPosition(this.pit.x + t.off * C * (0.65 + 0.35 * fs), this.pit.y + 0.04 * C);
+    }
+    this.bloom.setVisible(fs > 0);
+    if (fs > 0) {
+      const pulse = fr.reducedMotion ? 1 : 0.92 + 0.08 * Math.sin(timeMs / 130 + this.side * 2);
+      this.bloom.setPosition(this.pit.x, this.pit.y - (0.1 + 0.26 * fs) * C);
+      this.bloom.setScale(artScale() * (0.5 + 0.5 * fs) * (1 + this.flash * 0.3));
+      this.bloom.setAlpha(Math.min(1, (0.3 + 0.2 * fs) * this.flicker * pulse + this.flash * 0.3));
     }
 
     // Угли.
@@ -538,6 +572,7 @@ export class FireView {
     this.embers.destroy();
     this.emberGlow.destroy();
     this.glow.destroy();
+    this.bloom.destroy();
     this.sparks.destroy();
     this.smoke.destroy();
     this.leaves.destroy();

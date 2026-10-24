@@ -10,7 +10,6 @@ import {
   blob,
   chalkLine,
   crumbs,
-  jitterPath,
   makePen,
   pastelFill,
   pastelStroke,
@@ -19,7 +18,7 @@ import {
   smudge,
   toothTile,
 } from '../../shared/pastelKit.ts';
-import { type RC, type Tex, canvasFor, ellipsePts, quadPts, roundRectPts, tex } from './common.ts';
+import { type RC, type Tex, canvasFor, ellipsePts, quadPts, tex } from './common.ts';
 
 /** Центры кострищ в клетках: С, В, Ю, З. */
 export function pitCenters(): Pt[] {
@@ -216,41 +215,50 @@ export function drawClearing(rc: RC): Tex {
     pastelFill(x, pen, sp, g.dark, -0.4, 0.75, { stroke: C * 0.06, under: 0.2, pressure: 0.7, tones: [g.dark, g.root, g.base], len: 0.35 });
   }
 
-  // Клетки — вытоптанные пятна, без линий сетки.
+  // Клетки — вытоптанные пятна тёплой земли: мягкий край, светлая утоптанная середина,
+  // следы сапог; без линий сетки.
   for (let j = 0; j < 2; j++) {
     for (let i = 0; i < 2; i++) {
-      const cx = X(i + 0.5);
-      const cy = Y(j + 0.5);
-      const s = C * 0.88;
-      const spot = jitterPath(roundRectPts(pen, cx - s / 2, cy - s / 2, s, s, C * 0.26), pen.rng, C * 0.03);
-      pastelFill(x, pen, spot, g.base, -0.78, 1.25, {
-        stroke: C * 0.075,
-        under: 0.55,
-        cross: 0.5,
-        tones: [g.base, g.base, mix(g.base, g.light, 0.5), mix(g.base, g.dark, 0.25)],
-        len: 0.45,
+      const cx = X(i + 0.5) + (pen.rng() - 0.5) * C * 0.04;
+      const cy = Y(j + 0.5) + (pen.rng() - 0.5) * C * 0.04;
+      smudge(x, pen, cx, cy, C * 0.56, g.base, 0.55, 0.92);
+      const spot = blob(pen.rng, C * 0.9, C * 0.84, { cx, cy, irregularity: 0.13, points: 11 });
+      pastelFill(x, pen, spot, g.base, -0.78 + (pen.rng() - 0.5) * 0.5, 1.1, {
+        stroke: C * 0.07,
+        under: 0.42,
+        cross: 0.45,
+        pressure: 0.8,
+        tones: [g.base, mix(g.base, g.light, 0.35), g.base, mix(g.base, g.dark, 0.2)],
+        len: 0.32,
       });
-      // Свет — слева сверху: короткие светлые штрихи; тень — справа снизу.
-      const hi = blob(pen.rng, C * 0.6, C * 0.5, { cx: cx - C * 0.08, cy: cy - C * 0.09, irregularity: 0.2 });
-      pastelFill(x, pen, hi, g.light, -0.95, 1, { stroke: C * 0.065, under: 0.12, cross: 0.3, pressure: 0.95, tones: [g.light, mix(g.light, palette.chalk, 0.22)], len: 0.4 });
-      const lo = blob(pen.rng, C * 0.8, C * 0.3, { cx: cx + C * 0.06, cy: cy + C * 0.33, irregularity: 0.2 });
-      pastelFill(x, pen, lo, g.dark, -0.4, 0.9, { stroke: C * 0.06, under: 0.1, cross: 0.2, pressure: 0.85, len: 0.35 });
-      sgraffito(x, pen, scratches(pen, spot, 16, C * 0.09, pen.rng() * 3, 3), Math.max(1.2, C * 0.011));
+      const hi = blob(pen.rng, C * 0.56, C * 0.46, { cx: cx + (pen.rng() - 0.5) * C * 0.1, cy: cy + (pen.rng() - 0.5) * C * 0.1, irregularity: 0.22 });
+      pastelFill(x, pen, hi, g.light, -0.95, 0.85, { stroke: C * 0.06, under: 0.08, cross: 0.3, pressure: 0.7, tones: [g.light, mix(g.light, palette.chalk, 0.15)], len: 0.3 });
+      // Следы сапог: пары вдавленных овалов.
       for (let k = 0; k < 2; k++) {
-        const crack: Pt[] = [{ x: cx + (pen.rng() - 0.5) * C * 0.5, y: cy + (pen.rng() - 0.5) * C * 0.5 }];
-        let a = pen.rng() * Math.PI * 2;
-        for (let st = 0; st < 4; st++) {
-          a += (pen.rng() - 0.5) * 1.2;
-          const last = crack[crack.length - 1];
-          crack.push({ x: last.x + Math.cos(a) * C * 0.06, y: last.y + Math.sin(a) * C * 0.06 });
+        const fx = cx + (pen.rng() - 0.5) * C * 0.45;
+        const fy = cy + (pen.rng() - 0.5) * C * 0.4;
+        const a = pen.rng() * Math.PI * 2;
+        for (const side of [-1, 1]) {
+          const px = fx + Math.cos(a + Math.PI / 2) * side * C * 0.045 + Math.cos(a) * side * C * 0.03;
+          const py = fy + Math.sin(a + Math.PI / 2) * side * C * 0.045 + Math.sin(a) * side * C * 0.03;
+          const print = blob(pen.rng, C * 0.1, C * 0.055, { cx: px, cy: py, irregularity: 0.12, points: 8, rot: a });
+          pastelFill(x, pen, print, g.dark, a, 1, { stroke: C * 0.03, under: 0.45, cross: 0, pressure: 0.6, len: 0.5 });
         }
-        sgraffito(x, pen, [crack], Math.max(1.2, C * 0.01));
       }
-      const pebbles = 2 + Math.floor(pen.rng() * 2);
+      sgraffito(x, pen, scratches(pen, spot, 12, C * 0.08, pen.rng() * 3, 3), Math.max(1.1, C * 0.009));
+      const crack: Pt[] = [{ x: cx + (pen.rng() - 0.5) * C * 0.5, y: cy + (pen.rng() - 0.5) * C * 0.5 }];
+      let ca = pen.rng() * Math.PI * 2;
+      for (let st = 0; st < 4; st++) {
+        ca += (pen.rng() - 0.5) * 1.2;
+        const last = crack[crack.length - 1];
+        crack.push({ x: last.x + Math.cos(ca) * C * 0.06, y: last.y + Math.sin(ca) * C * 0.06 });
+      }
+      sgraffito(x, pen, [crack], Math.max(1.1, C * 0.009));
+      const pebbles = 1 + Math.floor(pen.rng() * 2);
       for (let k = 0; k < pebbles; k++) {
         const ang = pen.rng() * Math.PI * 2;
-        const rr = C * (0.2 + pen.rng() * 0.15);
-        stone(x, pen, cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr * 0.9, C * (0.08 + pen.rng() * 0.04), C * (0.05 + pen.rng() * 0.025), false);
+        const rr = C * (0.28 + pen.rng() * 0.1);
+        stone(x, pen, cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr * 0.9, C * (0.07 + pen.rng() * 0.03), C * (0.045 + pen.rng() * 0.02), false);
       }
     }
   }
@@ -275,8 +283,11 @@ export function drawClearing(rc: RC): Tex {
     pastelStroke(x, pen, pts, w, g.root, 1, { taper: 0.45 });
     pastelStroke(x, pen, pts.map((p) => ({ x: p.x - w * 0.12, y: p.y - w * 0.22 })), w * 0.42, mix(g.light, palette.chalk, 0.25), 0.7, { taper: 0.6 });
   };
-  root(wav(X(1), Y(-0.08), X(1), Y(2.08), C * 0.03), C * 0.085);
-  root(wav(X(-0.08), Y(1), X(2.08), Y(1), C * 0.03), C * 0.085);
+  // Обрывки корней вдоль границ (не сплошной крест — это была бы сетка).
+  root(wav(X(1.03), Y(-0.12), X(0.97), Y(0.74), C * 0.045), C * 0.07);
+  root(wav(X(1.02), Y(1.3), X(0.98), Y(2.12), C * 0.045), C * 0.06);
+  root(wav(X(-0.12), Y(0.98), X(0.7), Y(1.03), C * 0.045), C * 0.065);
+  root(wav(X(1.32), Y(1.02), X(2.12), Y(0.97), C * 0.045), C * 0.06);
   root(wav(X(0.98), Y(0.25), X(0.6), Y(-0.2), C * 0.02), C * 0.045);
   root(wav(X(1.02), Y(1.75), X(1.4), Y(2.2), C * 0.02), C * 0.045);
   root(wav(X(0.25), Y(1.02), X(-0.2), Y(1.35), C * 0.02), C * 0.045);

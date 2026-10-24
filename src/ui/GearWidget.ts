@@ -1,5 +1,5 @@
 // Плашка снаряжения (11.3): что в руках, переключатель «Birke | Eiche», полумесяц-прогресс
-// ночи, кнопка «Стоять» и пауза. Лежит над лесом в верхнем углу, противоположном поленнице.
+// ночи, кнопка «Стоять» и пауза. Лежит над лесом в верхнем углу, свободном от поленницы и палатки.
 
 import { ru } from '../i18n/ru.ts';
 import type { WoodKind } from '../core/wood.ts';
@@ -51,10 +51,10 @@ export class GearWidget {
     el.querySelector('[data-a="pause"]')!.addEventListener('click', () => h.onPause());
   }
 
-  /** Плашка — в углу, противоположном поленнице по горизонтали. */
-  placeOpposite(pileIsLeft: boolean): void {
-    this.el.classList.toggle('at-right', pileIsLeft);
-    this.el.classList.toggle('at-left', !pileIsLeft);
+  /** Плашка — в свободном верхнем углу: там нет ни поленницы, ни палатки. */
+  placeAt(left: boolean): void {
+    this.el.classList.toggle('at-left', left);
+    this.el.classList.toggle('at-right', !left);
   }
 
   update(kind: WoodKind | null, count: number, selected: WoodKind, hasOak: boolean, nightShare: number): void {

@@ -986,8 +986,9 @@ export function crumbs(
 /**
  * Радиальная кисть с зернистым краем: ей «вытирают» темноту (8.3). Внутри — полная
  * прозрачность-стирание, к краю — зернисто до нуля, как край пастели на бумаге.
+ * grain — сила зерна (1 — полное, меньше — мягче, для широкого ровного света фонаря).
  */
-export function lightBrush(rng: Rng, size: number, core = 0.38, softness = 0.16): HTMLCanvasElement {
+export function lightBrush(rng: Rng, size: number, core = 0.38, softness = 0.16, grain = 1): HTMLCanvasElement {
   const c = makeCanvas(size, size);
   const x = ctx2d(c);
   const img = x.createImageData(size, size);
@@ -1006,7 +1007,7 @@ export function lightBrush(rng: Rng, size: number, core = 0.38, softness = 0.16)
       // Радиальный спад: 1 в сердцевине, 0 на краю.
       const f = d <= core ? 1 : 1 - (d - core) / (1 - core);
       const ff = f * f * (3 - 2 * f);
-      const n = fine[i] * 0.65 + mid[i] * 0.35;
+      const n = 0.5 + (fine[i] * 0.65 + mid[i] * 0.35 - 0.5) * grain;
       // Мягкий порог шума: ближе к краю пастель ложится только на вершины зерна.
       const a = smooth01((ff - n * 0.85 + softness * 0.5) / softness) * Math.min(1, ff * 1.6 + 0.08);
       img.data[i * 4] = 255;

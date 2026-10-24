@@ -126,41 +126,52 @@ function pileBase(rc: RC): HTMLCanvasElement {
   return c;
 }
 
-/** Дощечка с надписью «Birke» / «Eiche» шрифтом Rubik Scribble. */
+/** Дощечка с надписью «Birke» / «Eiche» шрифтом Rubik Scribble: светлая доска, тёмные буквы. */
 function sign(rc: RC, text: string): HTMLCanvasElement {
   const C = rc.C;
   const W = Math.ceil(C * 0.62);
-  const H = Math.ceil(C * 0.4);
+  const H = Math.ceil(C * 0.42);
   const [c, x] = canvasFor(W, H);
   const pen = makePen(rc.seed * 37 + text.length, 0, 0);
-  const f = palette.forest;
-  pastelStroke(x, pen, [{ x: W / 2, y: H * 0.95 }, { x: W / 2, y: H * 0.45 }], C * 0.04, f.trunk, 1, { taper: 0.1 });
-  const board = roundRectPts(pen, C * 0.04, H * 0.06, W - C * 0.08, H * 0.48, C * 0.04);
-  pastelFill(x, pen, board, palette.paper, 0, 1.1, { stroke: C * 0.05, under: 0.95, tones: [palette.paper, f.trunk] });
-  chalkLine(x, pen, board, Math.max(1, C * 0.012), palette.chalk, true, 0.8);
-  const fs = Math.round(C * 0.15);
-  x.font = `${fs}px "Rubik Scribble", "Rubik", sans-serif`;
+  const g = palette.ground;
+  pastelStroke(x, pen, [{ x: W / 2, y: H * 0.97 }, { x: W / 2, y: H * 0.45 }], C * 0.045, palette.forest.trunk, 1, { taper: 0.1 });
+  const board = roundRectPts(pen, C * 0.03, H * 0.05, W - C * 0.06, H * 0.52, C * 0.035);
+  const wood = mix(g.light, palette.chalk, 0.5);
+  pastelFill(x, pen, board, wood, 0.04, 1.2, { stroke: C * 0.05, under: 0.95, cross: 0.15, tones: [wood, mix(wood, g.light, 0.45), wood] });
+  sgraffito(x, pen, scratches(pen, board, 3, C * 0.3, 0, 0.04), Math.max(1, C * 0.008), g.light);
+  chalkLine(x, pen, board, Math.max(1.2, C * 0.012), g.dark, true, 0.9);
+  // Rubik Scribble с обводкой тем же цветом: каракули становятся плотнее и читаются мелко.
+  const fs = Math.round(C * 0.19);
   x.textAlign = 'center';
   x.textBaseline = 'middle';
-  x.fillStyle = palette.caption;
   x.save();
-  x.translate(W / 2, H * 0.31);
+  x.translate(W / 2, H * 0.33);
   x.rotate(-0.03);
+  x.font = `${fs}px "Rubik Scribble", "Rubik", sans-serif`;
+  x.fillStyle = palette.cardInk;
+  x.strokeStyle = palette.cardInk;
+  x.lineJoin = 'round';
+  x.lineWidth = Math.max(1.4, C * 0.016);
+  x.strokeText(text, 0, 0);
   x.fillText(text, 0, 0);
   x.restore();
   return c;
 }
 
-/** Светящийся меловой обвод выбранной половины. */
+/** Светящийся меловой обвод выбранной половины: только контур с мягким свечением. */
 function pileGlow(rc: RC, kind: 'birch' | 'oak'): HTMLCanvasElement {
   const C = rc.C;
   const W = Math.ceil((C * PILE_W()) / 2 + C * 0.3);
   const H = Math.ceil(C * PILE_H() * 0.8 + C * 0.2);
   const [c, x] = canvasFor(W, H);
   const pen = makePen(rc.seed * 41 + (kind === 'birch' ? 1 : 2), 0, 0);
-  const shape = blob(pen.rng, W * 0.86, H * 0.78, { cx: W / 2, cy: H * 0.56, irregularity: 0.05, points: 12 });
-  smudge(x, pen, W / 2, H * 0.56, Math.max(W, H) * 0.5, palette.chalk, 0.1, H / W);
-  chalkLine(x, pen, shape, Math.max(2, C * 0.025), palette.chalk, true, 1);
+  const shape = blob(pen.rng, W * 0.84, H * 0.76, { cx: W / 2, cy: H * 0.56, irregularity: 0.05, points: 12 });
+  x.save();
+  x.shadowColor = palette.chalk;
+  x.shadowBlur = C * 0.08;
+  chalkLine(x, pen, shape, Math.max(2, C * 0.028), palette.chalk, true, 1);
+  x.restore();
+  chalkLine(x, pen, shape, Math.max(1.4, C * 0.016), palette.chalk, true, 0.9);
   return c;
 }
 
@@ -170,10 +181,10 @@ export function drawPile(rc: RC): Tex[] {
   pileHalf(rc, 'birch').forEach((c, v) => out.push(tex(boil(K.pileBirch, v), c, 0.5, 1 - (rc.C * 0.12) / c.height)));
   pileHalf(rc, 'oak').forEach((c, v) => out.push(tex(boil(K.pileOak, v), c, 0.5, 1 - (rc.C * 0.12) / c.height)));
   stumpTex(rc).forEach((c, v) => out.push(tex(boil(K.pileStump, v), c, 0.5, 1 - (rc.C * 0.12) / c.height)));
-  out.push(tex(K.signBirch, sign(rc, 'Birke'), 0.5, 0.95));
-  out.push(tex(K.signOak, sign(rc, 'Eiche'), 0.5, 0.95));
-  out.push(tex(K.pileGlowBirch, pileGlow(rc, 'birch'), 0.5, 0.6));
-  out.push(tex(K.pileGlowOak, pileGlow(rc, 'oak'), 0.5, 0.6));
+  out.push(tex(K.signBirch, sign(rc, 'Birke'), 0.5, 0.95, 0));
+  out.push(tex(K.signOak, sign(rc, 'Eiche'), 0.5, 0.95, 0));
+  out.push(tex(K.pileGlowBirch, pileGlow(rc, 'birch'), 0.5, 0.6, 0));
+  out.push(tex(K.pileGlowOak, pileGlow(rc, 'oak'), 0.5, 0.6, 0));
   return out;
 }
 

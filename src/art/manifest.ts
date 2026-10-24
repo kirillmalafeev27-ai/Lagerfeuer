@@ -23,7 +23,7 @@ export const K = {
   logOak: 'log:oak',
   logOakCatching: 'log:oakCatch',
   tongue: (layer: number, shape: number) => `tongue:${layer}:${shape}`,
-  lick: 'lick',
+  bloom: 'flameBloom',
   embers: 'embers',
   smoke: 'smoke',
   spark: (i: number) => `spark${i}`,

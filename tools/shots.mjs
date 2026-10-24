@@ -1,4 +1,5 @@
-// Скриншоты через Playwright: node tools/shots.mjs "query" prefix [WxH ...] [--wait ms] [--click selector] [--keys "1 2"]
+// Скриншоты через Playwright: node tools/shots.mjs "query" prefix [WxH ...] [--wait ms] [--click selector]
+//   [--eval "js"] [--dpr 2] [--clip x,y,w,h]
 import { createRequire } from 'node:module';
 import { createServer } from 'vite';
 
@@ -16,6 +17,8 @@ const flag = (name, def) => {
 const wait = Number(flag('--wait', '2500'));
 const clicks = flag('--click', '');
 const script = flag('--eval', '');
+const dpr = Number(flag('--dpr', '1'));
+const clip = flag('--clip', '');
 const query = args[0] ?? '';
 const prefix = args[1] ?? 'shots/game';
 const sizes = (args.slice(2).length ? args.slice(2) : ['390x844', '768x1024', '1280x720']).map((s) => s.split('x').map(Number));
@@ -25,7 +28,7 @@ await server.listen();
 const port = server.httpServer.address().port;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 for (const [w, h] of sizes) {
-  const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
   const errors = [];
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`);
@@ -44,7 +47,8 @@ for (const [w, h] of sizes) {
     if (r !== undefined) console.log('eval:', typeof r === 'string' ? r : JSON.stringify(r));
   }
   const out = `${prefix}-${w}x${h}.png`;
-  await page.screenshot({ path: out });
+  const [cx, cy, cw, ch] = clip ? clip.split(',').map(Number) : [];
+  await page.screenshot({ path: out, ...(clip ? { clip: { x: cx, y: cy, width: cw, height: ch } } : {}) });
   console.log(out, errors.length ? `\n  ${errors.slice(0, 8).join('\n  ')}` : '');
   await page.close();
 }

@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { balance, timing } from '../config/balance.ts';
 import { type LevelId, LEVEL_IDS, nextLevel } from '../config/levels.ts';
 import { palette } from '../config/palette.ts';
-import { type Cell, type Side, cellCol, cellInDirection } from '../core/clearing.ts';
+import { type Cell, type Side, cellCol, cellInDirection, cellRow } from '../core/clearing.ts';
 import type { GameEvent } from '../core/events.ts';
 import { plannedAction } from '../core/intent.ts';
 import { generateLevel } from '../core/levelGen.ts';
@@ -184,6 +184,17 @@ export class App {
     this.show(this.loading.root);
     this.bindGlobal();
     this.startPhaser();
+    if (opts.dev) {
+      // Хук для e2e и снимков: состояние, верный ответ, сцена.
+      (window as unknown as { __bonfires?: object }).__bonfires = {
+        game: () => this.game,
+        scene: () => this.scene,
+        state: () => this.ctl?.state ?? null,
+        screen: () => this.screen,
+        correct: () => this.panel.debugCorrectIndex(),
+        answer: (i: number) => this.panel.answerKey(i),
+      };
+    }
     const loop = () => {
       const now = performance.now();
       const dt = now - this.lastFrame;
@@ -338,11 +349,14 @@ export class App {
     this.finished = false;
     this.shot = null;
     const pace = this.pace.snapshot();
-    const seed = hashSeed(Date.now() & 0x7fffffff, levelNum(id), Math.floor(Math.random() * 1e6));
+    const forced = this.opts.dev ? Number(new URLSearchParams(location.search).get('seed')) : NaN;
+    const seed = forced > 0 ? forced : hashSeed(Date.now() & 0x7fffffff, levelNum(id), Math.floor(Math.random() * 1e6));
     const gen = generateLevel(id, seed, pace);
     this.ctl = new GameController(gen.state);
     this.scene.beginRound(this.ctl, 'intro');
-    this.gear.placeOpposite(cellCol(gen.state.pile) === 0);
+    // Палатка всегда по диагонали от поленницы: один из верхних углов свободен.
+    const pileLeft = cellCol(gen.state.pile) === 0;
+    this.gear.placeAt(cellRow(gen.state.pile) === 0 ? !pileLeft : pileLeft);
     this.gear.setVisible(true);
     this.panel.setMode('intro');
     this.panel.setHeader(iconStep(), ru.header.intro);

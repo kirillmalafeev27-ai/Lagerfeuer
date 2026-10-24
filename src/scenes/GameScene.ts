@@ -596,6 +596,8 @@ export class GameScene extends Phaser.Scene {
     stamps.push({ x: lp.x, y: lp.y, r: 1.75 + (rm ? 0 : Math.sin(t / 900) * 0.02), strength: light.lanternStrength, brush: K.brushSoft });
     const lantern = this.camp.lanternPos();
     stamps.push({ x: lantern.x, y: lantern.y + 0.4 * CELL, r: 0.75, strength: 0.55, brush: K.brushSoft });
+    // Фонарь достаёт и до поленницы: она — часть лагеря, её нужно видеть всегда.
+    stamps.push({ x: this.camp.pilePos.x, y: this.camp.pilePos.y - 0.25 * CELL, r: 0.95, strength: 0.5, brush: K.brushSoft });
     for (const fv of this.fires) {
       const src = fv.lightSource();
       stamps.push({ x: src.x, y: src.y, r: src.r, strength: src.strength, brush: K.brush((this.boil.variant(fv.side) + fv.side) % 3) });

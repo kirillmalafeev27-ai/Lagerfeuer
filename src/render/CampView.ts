@@ -51,8 +51,8 @@ export class CampView {
     const half = (look.pile.w / 4) * CELL;
     const d = depthByY(py);
     this.base = artImage(scene, px, py + 0.06 * CELL, K.pileBase).setDepth(d - 0.2);
-    this.glowBirch = artImage(scene, px - half, py - 0.02 * CELL, K.pileGlowBirch).setDepth(d - 0.3).setAlpha(0);
-    this.glowOak = artImage(scene, px + half, py - 0.02 * CELL, K.pileGlowOak).setDepth(d - 0.3).setAlpha(0);
+    this.glowBirch = artImage(scene, px - half, py - 0.02 * CELL, K.pileGlowBirch).setDepth(DEPTH.overHints - 2).setAlpha(0);
+    this.glowOak = artImage(scene, px + half, py - 0.02 * CELL, K.pileGlowOak).setDepth(DEPTH.overHints - 2).setAlpha(0);
     this.birch = artImage(scene, px - half, py, K.pileBirch, 0).setDepth(d);
     this.oak = artImage(scene, px + half, py, hasOak ? K.pileOak : K.pileStump, 0).setDepth(d);
     this.signBirch = artImage(scene, px - half, py - 0.52 * CELL, K.signBirch).setDepth(DEPTH.overHints - 1);

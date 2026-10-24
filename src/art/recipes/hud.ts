@@ -47,47 +47,48 @@ function logIcon(rc: RC, kind: 'birch' | 'oak'): HTMLCanvasElement {
   const H = gs.slotH;
   const [c, x] = canvasFor(W, H);
   const pen = makePen(rc.seed * (kind === 'birch' ? 191 : 193), 0, 0);
-  const r = H * 0.46;
-  const body = roundRectPts(pen, 1, 1, W - 2, H - 2, r);
-  const bark = kind === 'birch' ? palette.birch.bark : palette.oak.light;
-  const shade = kind === 'birch' ? mix(palette.birch.bark, palette.birch.inner, 0.45) : mix(palette.oak.light, palette.oak.bark, 0.35);
-  pastelFill(x, pen, body, bark, -0.1, 1.5, { stroke: Math.max(2, H * 0.32), under: 1, cross: 0.15, tones: [bark, bark, shade], grain: false });
-  // Нижняя тень брёвнышка.
-  const low = roundRectPts(pen, 2, H * 0.62, W - 4, H * 0.32, H * 0.15);
-  pastelFill(x, pen, low, shade, 0, 1.2, { stroke: Math.max(2, H * 0.25), under: 0.6, cross: 0, grain: false });
+  const body = roundRectPts(pen, 1, 1.5, W - 2, H - 3, H * 0.42);
+  // Берёза — белое поленце с чёрточками; дуб — светло-охристый, с кольцами на торце.
+  const bark = kind === 'birch' ? palette.birch.bark : mix(palette.oak.light, palette.oak.end, 0.45);
+  const shade = kind === 'birch' ? mix(palette.birch.bark, palette.birch.inner, 0.55) : mix(palette.oak.light, palette.oak.bark, 0.2);
+  pastelFill(x, pen, body, bark, -0.1, 1.5, { stroke: Math.max(2, H * 0.3), under: 1, cross: 0.12, tones: [bark, bark, shade], grain: false });
+  const low = roundRectPts(pen, 3, H * 0.66, W - 6, H * 0.24, H * 0.12);
+  pastelFill(x, pen, low, shade, 0, 1.2, { stroke: Math.max(2, H * 0.22), under: 0.7, cross: 0, grain: false });
+  const ex = W - H * 0.34;
   if (kind === 'birch') {
+    // Чёткие чёрные чёрточки: шкала не кипит и должна читаться мелко.
     const marks = [
-      [0.2, 0.32],
-      [0.44, 0.62],
-      [0.62, 0.3],
+      [0.16, 0.34, 0.46],
+      [0.4, 0.66, 0.4],
+      [0.58, 0.32, 0.32],
     ];
-    for (const [u, v] of marks) {
-      const mx = W * u;
+    x.save();
+    x.strokeStyle = palette.birch.mark;
+    x.lineCap = 'round';
+    x.lineWidth = Math.max(2, H * 0.17);
+    for (const [u, v, l] of marks) {
+      const mx = (ex - H * 0.32) * u + H * 0.22;
       const my = H * v;
-      pastelStroke(x, pen, [{ x: mx - H * 0.24, y: my }, { x: mx + H * 0.24, y: my + 0.5 }], Math.max(1.6, H * 0.2), palette.birch.mark, 1, { taper: 0.3, grain: false });
+      x.beginPath();
+      x.moveTo(mx - H * l * 0.5, my);
+      x.lineTo(mx + H * l * 0.5, my + 0.6);
+      x.stroke();
     }
+    x.restore();
   } else {
-    // Волокна дуба.
-    for (const v of [0.35, 0.6]) pastelStroke(x, pen, [{ x: H * 0.4, y: H * v }, { x: W - H * 0.9, y: H * v + 0.5 }], Math.max(1, H * 0.07), palette.oak.ring, 0.8, { taper: 0.4, grain: false });
+    for (const v of [0.36, 0.62]) pastelStroke(x, pen, [{ x: H * 0.35, y: H * v }, { x: ex - H * 0.35, y: H * v + 0.6 }], Math.max(1.2, H * 0.08), palette.oak.bark, 0.75, { taper: 0.4, grain: false });
   }
-  // Торец справа.
-  const ex = W - H * 0.42;
+  // Торец справа: у берёзы — светлая древесина, у дуба — охра с годовыми кольцами.
   const endCol = kind === 'birch' ? palette.birch.inner : palette.oak.end;
-  const end = ellipsePts(ex, H / 2, H * 0.3, H * 0.4, 14);
-  pastelFill(x, pen, end, endCol, 0.3, 1.5, { stroke: Math.max(1.5, H * 0.2), under: 1, cross: 0, grain: false });
-  for (let k = 1; k <= (kind === 'oak' ? 2 : 1); k++) {
-    const ring = ellipsePts(ex, H / 2, H * 0.3 * (k / 3), H * 0.4 * (k / 3), 10);
-    pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, H * 0.06), kind === 'oak' ? palette.oak.ring : palette.oak.end, 1, { taper: 0, grain: false });
+  const rx = H * (kind === 'birch' ? 0.2 : 0.26);
+  const ry = H * (kind === 'birch' ? 0.34 : 0.4);
+  pastelFill(x, pen, ellipsePts(ex, H / 2, rx, ry, 14), endCol, 0.3, 1.5, { stroke: Math.max(1.5, H * 0.18), under: 1, cross: 0, grain: false });
+  if (kind === 'oak') {
+    for (const k of [0.62, 0.3]) {
+      const ring = ellipsePts(ex, H / 2, rx * k, ry * k, 12);
+      pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, H * 0.06), palette.oak.ring, 1, { taper: 0, grain: false });
+    }
   }
-  // Тёмная обводка: соседние поленья не сливаются.
-  x.save();
-  x.strokeStyle = palette.paper;
-  x.lineWidth = 1.4;
-  x.beginPath();
-  body.forEach((p, i) => (i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y)));
-  x.closePath();
-  x.stroke();
-  x.restore();
   return c;
 }
 
@@ -286,10 +287,10 @@ export function drawHud(rc: RC): Tex[] {
 
 /** Кисти света: радиальная прозрачность с зернистым краем, по 3 варианта под кипение. */
 export function drawBrushes(rc: RC): Tex[] {
-  const size = rc.C >= 128 ? 256 : 192;
+  const size = rc.C >= 128 ? 320 : 224;
   const out: Tex[] = [];
   for (let i = 0; i < 3; i++) out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size)));
-  out.push(tex(K.brushSoft, lightBrush(mulberry32(rc.seed * 251), size, 0.15, 0.3)));
+  out.push(tex(K.brushSoft, lightBrush(mulberry32(rc.seed * 251), size, 0.15, 0.3, 0.35)));
   {
     // Маска неба: сверху полная, к низу полосы зернисто сходит на нет.
     const [c, x] = canvasFor(64, 64);

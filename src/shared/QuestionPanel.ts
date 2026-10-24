@@ -121,6 +121,11 @@ export class QuestionPanel {
     this.activeAt = performance.now();
   }
 
+  /** Номер верного варианта текущего вопроса (только для отладки и e2e). */
+  debugCorrectIndex(): number | null {
+    return this.current && !this.busy && this.mode === 'active' && !this.lockedByReady ? this.current.correctIndex : null;
+  }
+
   /** Клавиши 1–4. */
   answerKey(i: number): void {
     const b = this.options.querySelector<HTMLButtonElement>(`.bf-option[data-i="${i}"]`);
