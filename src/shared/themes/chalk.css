@@ -422,6 +422,26 @@
   background: transparent;
 }
 
+/* Меню и выбор уровня на месте панели вопроса: рамка уже есть у панели. */
+.bf-question > .bf-screen {
+  padding: 8px;
+  z-index: 2;
+  background: none;
+  backdrop-filter: none;
+}
+
+.bf-question > .bf-screen .bf-sheet {
+  border: none;
+  background: none;
+  padding: 4px;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.bf-question > .bf-screen .bf-menu .bf-title {
+  font-size: clamp(30px, 6vmin, 52px);
+}
+
 .bf-sheet {
   position: relative;
   max-width: min(560px, 100%);
@@ -502,6 +522,11 @@
   opacity: 0.85;
 }
 
+.bf-levels-sheet {
+  width: 100%;
+  max-width: 640px;
+}
+
 .bf-levels {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
@@ -512,8 +537,8 @@
 .bf-level {
   appearance: none;
   position: relative;
-  padding: 10px 6px 8px;
-  min-height: 108px;
+  padding: 8px 6px 6px;
+  min-height: 96px;
   border: 10px solid transparent;
   border-image: var(--bf-frame) 28 / 10px / 0 round;
   border-radius: 12px;

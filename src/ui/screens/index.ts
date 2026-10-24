@@ -83,8 +83,7 @@ export function levelsScreen(h: {
   onBack(): void;
 }): HTMLElement {
   const root = screen('is-dim');
-  const sheet = el('div', 'bf-sheet');
-  sheet.style.maxWidth = '640px';
+  const sheet = el('div', 'bf-sheet bf-levels-sheet');
   sheet.appendChild(el('h2', 'bf-h2', ru.levels.title));
   const grid = el('div', 'bf-levels');
   let first: HTMLButtonElement | null = null;
@@ -108,7 +107,7 @@ export function levelsScreen(h: {
   }
   sheet.appendChild(grid);
   const row = el('div', 'bf-row');
-  row.appendChild(button(ru.settings.close, '', h.onBack));
+  row.appendChild(button(ru.levels.back, '', h.onBack));
   sheet.appendChild(row);
   root.appendChild(sheet);
   setTimeout(() => first?.focus(), 50);

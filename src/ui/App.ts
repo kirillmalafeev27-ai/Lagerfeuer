@@ -309,10 +309,20 @@ export class App {
 
   // ── Экраны ─────────────────────────────────────────────────────
 
-  private show(elm: HTMLElement | null, inWorld = false): void {
+  /**
+   * Показать экран: 'overlay' — поверх всего, 'world' — в панели мира, 'panel' — на месте
+   * панели вопроса (меню и выбор уровня: сцена-заставка остаётся видна целиком).
+   */
+  private show(elm: HTMLElement | null, where: 'overlay' | 'world' | 'panel' = 'overlay'): void {
     this.overlayEl?.remove();
     this.overlayEl = elm;
-    if (elm) (inWorld ? this.layout.world : this.layout.overlay).appendChild(elm);
+    const host =
+      where === 'world'
+        ? this.layout.world
+        : where === 'panel'
+          ? this.layout.question
+          : this.layout.overlay;
+    if (elm) host.appendChild(elm);
     this.layout.question.classList.toggle(
       'is-idle',
       this.screen === 'menu' || this.screen === 'levels' || this.screen === 'loading',
@@ -332,7 +342,7 @@ export class App {
         },
         onSettings: () => this.openSettings(),
       }),
-      true,
+      'panel',
     );
   }
 
@@ -348,6 +358,8 @@ export class App {
         },
         onBack: () => this.showMenu(),
       }),
+      // В альбомной раскладке сетка уровней помещается на место панели вопроса.
+      this.layout.isLandscape() ? 'panel' : 'overlay',
     );
   }
 

@@ -25,9 +25,12 @@ export interface Recipe {
 /** Рецепты, по текстурам которых зерно не проходит (подсказки, шкалы и кисти — чистые). */
 const NO_GRAIN = new Set(['paper', 'brushes', 'hud']);
 
+/** Рецепты с более лёгким зерном: на лице героя крупинки бумаги читаются как грязь. */
+const LIGHT_GRAIN: Record<string, number> = { hero: 0.022 };
+
 /** Последний проход: зерно бумаги по всей текстуре (у вариантов кипения — своё). */
 export function finalizeTex(recipe: string, t: Tex, index: number, seed: number): void {
-  const density = t.grain ?? (NO_GRAIN.has(recipe) ? 0 : kitTooth());
+  const density = t.grain ?? (NO_GRAIN.has(recipe) ? 0 : (LIGHT_GRAIN[recipe] ?? kitTooth()));
   if (density > 0)
     grainPass(t.canvas, mulberry32(seed * 977 + index * 131 + recipe.length), density);
 }

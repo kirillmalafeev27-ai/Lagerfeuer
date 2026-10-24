@@ -257,10 +257,21 @@ function headTex(rc: RC, yawn: boolean): HTMLCanvasElement[] {
         stroke: H * 0.03,
         under: 0.3,
       });
+      // Румянец на морозе.
+      smudge(
+        x,
+        pen,
+        cx + r * 0.35,
+        fy + r * 0.38,
+        r * 0.3,
+        mix(hc.skin, hc.scarf, 0.45),
+        0.45,
+        0.8,
+      );
       // Глаз, нос, рот.
-      const eye = blob(pen.rng, r * 0.2, r * 0.26, {
+      const eye = blob(pen.rng, r * 0.22, r * 0.3, {
         cx: cx + r * 0.55,
-        cy: fy - r * 0.05,
+        cy: fy + r * 0.04,
         irregularity: 0.05,
       });
       pastelFill(x, pen, eye, palette.cardInk, 0, 1.4, {
@@ -270,7 +281,7 @@ function headTex(rc: RC, yawn: boolean): HTMLCanvasElement[] {
       crumbs(
         x,
         pen,
-        { x: cx + r * 0.58, y: fy - r * 0.14, w: 1, h: 1 },
+        { x: cx + r * 0.6, y: fy - r * 0.04, w: 1, h: 1 },
         palette.chalk,
         1,
         Math.max(1, r * 0.06),
@@ -326,14 +337,14 @@ function headTex(rc: RC, yawn: boolean): HTMLCanvasElement[] {
       const hatTop = H * 0.02;
       const hat: Pt[] = [
         ...cubicPts(
-          { x: cx - r * 1.12, y: fy - r * 0.2 },
-          { x: cx - r * 1.2, y: hatTop + r * 0.2 },
-          { x: cx + r * 0.2, y: hatTop - r * 0.1 },
-          { x: cx + r * 1.15, y: fy - r * 0.35 },
+          { x: cx - r * 1.12, y: fy - r * 0.45 },
+          { x: cx - r * 1.2, y: hatTop + r * 0.1 },
+          { x: cx + r * 0.2, y: hatTop - r * 0.2 },
+          { x: cx + r * 1.15, y: fy - r * 0.6 },
           10,
         ),
-        { x: cx + r * 1.2, y: fy - r * 0.05 },
-        { x: cx - r * 1.15, y: fy + r * 0.12 },
+        { x: cx + r * 1.2, y: fy - r * 0.32 },
+        { x: cx - r * 1.15, y: fy - r * 0.15 },
       ];
       pastelFill(x, pen, hat, hc.hat, -1.25, 1.35, {
         stroke: H * 0.035,
@@ -342,26 +353,33 @@ function headTex(rc: RC, yawn: boolean): HTMLCanvasElement[] {
       });
       // Отворот с резинкой.
       const brim: Pt[] = [
-        { x: cx - r * 1.2, y: fy - r * 0.32 },
-        { x: cx + r * 1.22, y: fy - r * 0.48 },
-        { x: cx + r * 1.26, y: fy - r * 0.02 },
-        { x: cx - r * 1.2, y: fy + r * 0.16 },
+        { x: cx - r * 1.2, y: fy - r * 0.58 },
+        { x: cx + r * 1.22, y: fy - r * 0.74 },
+        { x: cx + r * 1.26, y: fy - r * 0.32 },
+        { x: cx - r * 1.2, y: fy - r * 0.14 },
       ];
       pastelFill(x, pen, brim, mix(hc.hat, palette.chalk, 0.25), 0, 1.3, {
         stroke: H * 0.03,
         under: 0.85,
       });
-      const ribs: Pt[][] = [];
+      // Резинка отворота — тонкие кремовые рубчики, а не чёрные прорези.
       for (let i = 0; i < 9; i++) {
         const t = i / 8;
-        const bx = cx - r * 1.12 + t * r * 2.3;
-        const by0 = fy - r * 0.3 - t * r * 0.15;
-        ribs.push([
-          { x: bx, y: by0 },
-          { x: bx + 0.5, y: by0 + r * 0.42 },
-        ]);
+        const bx = cx - r * 1.1 + t * r * 2.28;
+        const by0 = fy - r * 0.56 - t * r * 0.15;
+        pastelStroke(
+          x,
+          pen,
+          [
+            { x: bx, y: by0 },
+            { x: bx + 0.5, y: by0 + r * 0.36 },
+          ],
+          Math.max(1, H * 0.008),
+          mix(hc.hat, hc.boots, 0.35),
+          0.8,
+          { taper: 0.2 },
+        );
       }
-      sgraffito(x, pen, ribs, Math.max(1, H * 0.009));
       chalkLine(x, pen, hat.slice(0, 11), Math.max(1.2, H * 0.012), palette.chalk, false, 0.75);
       return c;
     },

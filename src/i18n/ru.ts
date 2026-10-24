@@ -18,6 +18,7 @@ export const ru = {
     short: (id: string) => (id === 'inf' ? '∞' : id),
     locked: 'Сначала пройди предыдущую ночь',
     best: 'Лучшее',
+    back: 'Назад',
     traits: {
       oak: 'дуб',
       noOak: 'только берёза',
