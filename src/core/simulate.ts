@@ -98,7 +98,13 @@ export function playNominal(s: GameState, plan: PlanFn): boolean {
  * ошибка показывается wrongFeedbackMs, смена вопроса — questionSwapMs.
  * Используется для калибровки порогов подсказок (2.8).
  */
-export function timeForCorrect(rng: Rng, n: number, tMed: number, p: number, limitSec = Infinity): number {
+export function timeForCorrect(
+  rng: Rng,
+  n: number,
+  tMed: number,
+  p: number,
+  limitSec = Infinity,
+): number {
   const swap = balance.questionSwapMs / 1000;
   const wrong = balance.wrongFeedbackMs / 1000;
   let t = 0;
@@ -116,7 +122,14 @@ export function timeForCorrect(rng: Rng, n: number, tMed: number, p: number, lim
 }
 
 /** Доля опозданий: n действий при r = need / доступное, need = n × A / p. */
-export function lateShare(rng: Rng, n: number, r: number, tMed: number, p: number, runs: number): number {
+export function lateShare(
+  rng: Rng,
+  n: number,
+  r: number,
+  tMed: number,
+  p: number,
+  runs: number,
+): number {
   const A = tMed + balance.unitOverheadSec;
   const avail = (n * A) / (p * r);
   let late = 0;

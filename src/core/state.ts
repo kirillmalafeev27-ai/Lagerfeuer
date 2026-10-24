@@ -40,10 +40,7 @@ export interface Gust {
   phase: 0 | 1 | 2 | 3;
 }
 
-export type Intent =
-  | { kind: 'feed'; fire: Side }
-  | { kind: 'move'; cell: Cell }
-  | { kind: 'pile' };
+export type Intent = { kind: 'feed'; fire: Side } | { kind: 'move'; cell: Cell } | { kind: 'pile' };
 
 export interface Hands {
   kind: WoodKind | null;
@@ -131,7 +128,11 @@ export function cloneState(s: GameState): GameState {
       hands: { ...s.hero.hands },
       intent: s.hero.intent ? { ...s.hero.intent } : null,
     },
-    stats: { ...s.stats, times: s.stats.times.slice(), cause: s.stats.cause ? { ...s.stats.cause } : null },
+    stats: {
+      ...s.stats,
+      times: s.stats.times.slice(),
+      cause: s.stats.cause ? { ...s.stats.cause } : null,
+    },
   };
 }
 

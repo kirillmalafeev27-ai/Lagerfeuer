@@ -47,7 +47,8 @@ export class DarknessLayer {
     this.view = view;
     this.half = half;
     if (this.fallback) {
-      if (!this.vignette) this.vignette = this.scene.add.image(0, 0, K.vignette).setDepth(DEPTH.dark);
+      if (!this.vignette)
+        this.vignette = this.scene.add.image(0, 0, K.vignette).setDepth(DEPTH.dark);
       this.vignette.setPosition(view.x + view.w / 2, view.y + view.h / 2);
       this.vignette.setDisplaySize(view.w * 1.15, view.h * 1.15);
       return;
@@ -68,7 +69,11 @@ export class DarknessLayer {
    * Перерисовать тьму. fillAlpha — непрозрачность бумаги после равномерного света неба
    * (луна, рассвет); stamps — источники света.
    */
-  draw(fillAlpha: number, stamps: readonly LightStamp[], sky: { top: number; bottom: number; strength: number } | null): void {
+  draw(
+    fillAlpha: number,
+    stamps: readonly LightStamp[],
+    sky: { top: number; bottom: number; strength: number } | null,
+  ): void {
     if (this.fallback) {
       if (this.vignette) this.vignette.setAlpha(Math.min(1, fillAlpha / light.nightAlpha));
       return;
@@ -101,7 +106,11 @@ export class DarknessLayer {
       const px = (s.x - this.view.x) * k;
       const py = (s.y - this.view.y) * k;
       const scale = (s.r * CELL * 2 * k) / this.brushSize;
-      rt.stamp(s.brush, undefined, px, py, { scale, alpha: Math.min(1, s.strength), blendMode: Phaser.BlendModes.ERASE });
+      rt.stamp(s.brush, undefined, px, py, {
+        scale,
+        alpha: Math.min(1, s.strength),
+        blendMode: Phaser.BlendModes.ERASE,
+      });
       this.erases++;
     }
     rt.render();

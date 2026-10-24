@@ -4,7 +4,13 @@ import Phaser from 'phaser';
 import { artMeta, artScale } from '../art/registry.ts';
 import { BOIL, boil } from '../art/manifest.ts';
 
-export function artImage(scene: Phaser.Scene, x: number, y: number, key: string, variant?: number): Phaser.GameObjects.Image {
+export function artImage(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  key: string,
+  variant?: number,
+): Phaser.GameObjects.Image {
   const k = variant === undefined ? key : boil(key, variant);
   const img = scene.add.image(x, y, k);
   const m = artMeta(k);

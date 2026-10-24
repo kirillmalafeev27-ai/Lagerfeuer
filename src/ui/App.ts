@@ -7,10 +7,11 @@ import { type LevelId, LEVEL_IDS, nextLevel } from '../config/levels.ts';
 import { palette } from '../config/palette.ts';
 import { type Cell, type Side, cellCol, cellInDirection, cellRow } from '../core/clearing.ts';
 import type { GameEvent } from '../core/events.ts';
+import { type PlanFn, makeMixedBot } from '../core/bots.ts';
 import { plannedAction } from '../core/intent.ts';
 import { generateLevel } from '../core/levelGen.ts';
 import { hashSeed } from '../core/rng.ts';
-import type { GameState } from '../core/state.ts';
+import { type GameState, cloneState } from '../core/state.ts';
 import type { WoodKind } from '../core/wood.ts';
 import { GameController } from '../game/GameController.ts';
 import { GameAudio } from '../audio/GameAudio.ts';
@@ -26,7 +27,7 @@ import { QuestionPanel } from '../shared/QuestionPanel.ts';
 import type { QuestionProvider } from '../shared/questions/types.ts';
 import { type KeyValueStorage, localKeyValue, readJson, writeJson } from '../shared/storage.ts';
 import { GearWidget } from './GearWidget.ts';
-import { iconHands, iconLog, iconReady, iconStep, wordImage } from './icons.ts';
+import { iconHands, iconLog, iconReady, iconStep, warmIcons, wordImage } from './icons.ts';
 import {
   bubble,
   introScreen,
@@ -128,7 +129,13 @@ export class App {
     if (!s.reducedMotionSet) s.reducedMotion = reducedPref;
     this.settings = s;
     this.progress = readJson<Progress>(this.store, 'progress', { unlocked: ['1'], best: {} });
-    this.tutorial = readJson<Record<Tutorial, boolean>>(this.store, 'tutorial', { start: false, eyes: false, oak: false, embers: false, wind: false });
+    this.tutorial = readJson<Record<Tutorial, boolean>>(this.store, 'tutorial', {
+      start: false,
+      eyes: false,
+      oak: false,
+      embers: false,
+      wind: false,
+    });
     this.pace = new PaceTracker(this.paceStore, balance.pace);
     this.mixer = new Mixer({ sfx: s.sfx, ambient: s.ambient, muted: s.muted });
     this.audio = new GameAudio(this.mixer);
@@ -173,6 +180,15 @@ export class App {
       hintsEnabled: s.hints,
       wordsLang: s.words,
       darkFallback: new URLSearchParams(location.search).get('dark') === 'fallback',
+      speed: opts.dev
+        ? Math.max(
+            1,
+            Math.min(
+              16,
+              Math.round(Number(new URLSearchParams(location.search).get('speed')) || 1),
+            ),
+          )
+        : 1,
       onWorldTap: (t) => this.onWorldTap(t),
       onRoundEvents: (ev, st) => this.onRoundEvents(ev, st),
       onFinaleDone: () => this.showResults(),
@@ -184,6 +200,8 @@ export class App {
     this.show(this.loading.root);
     this.bindGlobal();
     this.startPhaser();
+    // Значки DOM — пока крутится загрузка (между рецептами арта есть паузы).
+    setTimeout(() => warmIcons([sfxDe.hoppla, sfxRu.hoppla]), 30);
     if (opts.dev) {
       // Хук для e2e и снимков: состояние, верный ответ, сцена.
       (window as unknown as { __bonfires?: object }).__bonfires = {
@@ -193,13 +211,22 @@ export class App {
         screen: () => this.screen,
         correct: () => this.panel.debugCorrectIndex(),
         answer: (i: number) => this.panel.answerKey(i),
+        options: () => this.layout.question.querySelectorAll('.bf-option').length,
+        tap: (t: WorldTarget) => this.onWorldTap(t),
+        wood: (k: WoodKind) => this.selectWood(k),
+        /** Ход «игрока-бота»: смешанный бот выбирает цель, App получает это как тапы. */
+        botStep: () => this.debugBotStep(),
       };
     }
     const loop = () => {
       const now = performance.now();
       const dt = now - this.lastFrame;
       this.lastFrame = now;
-      this.audio.tick(dt, this.ctl?.state ?? this.scene?.ctl?.state ?? null, this.screen === 'play');
+      this.audio.tick(
+        dt,
+        this.ctl?.state ?? this.scene?.ctl?.state ?? null,
+        this.screen === 'play',
+      );
       if (this.screen === 'play') this.syncHud();
       this.updateDebug();
       this.raf = requestAnimationFrame(loop);
@@ -220,7 +247,13 @@ export class App {
       backgroundColor: palette.paper,
       banner: false,
       scale: { mode: Phaser.Scale.NONE, width: w, height: h, zoom: 1 / this.dpr },
-      render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+      // Шейдеры собираются параллельно, не подвешивая кадр (их варианты ещё и прогреваются при загрузке).
+      render: {
+        antialias: true,
+        roundPixels: false,
+        powerPreference: 'high-performance',
+        skipUnreadyShaders: true,
+      },
       input: { keyboard: false, gamepad: false },
       audio: { noAudio: true },
       disableContextMenu: true,
@@ -274,7 +307,10 @@ export class App {
     this.overlayEl?.remove();
     this.overlayEl = elm;
     if (elm) (inWorld ? this.layout.world : this.layout.overlay).appendChild(elm);
-    this.layout.question.classList.toggle('is-idle', this.screen === 'menu' || this.screen === 'levels' || this.screen === 'loading');
+    this.layout.question.classList.toggle(
+      'is-idle',
+      this.screen === 'menu' || this.screen === 'levels' || this.screen === 'loading',
+    );
   }
 
   private showMenu(): void {
@@ -350,7 +386,10 @@ export class App {
     this.shot = null;
     const pace = this.pace.snapshot();
     const forced = this.opts.dev ? Number(new URLSearchParams(location.search).get('seed')) : NaN;
-    const seed = forced > 0 ? forced : hashSeed(Date.now() & 0x7fffffff, levelNum(id), Math.floor(Math.random() * 1e6));
+    const seed =
+      forced > 0
+        ? forced
+        : hashSeed(Date.now() & 0x7fffffff, levelNum(id), Math.floor(Math.random() * 1e6));
     const gen = generateLevel(id, seed, pace);
     this.ctl = new GameController(gen.state);
     this.scene.beginRound(this.ctl, 'intro');
@@ -371,7 +410,10 @@ export class App {
       this.beginPlay();
     };
     this.show(introScreen(done));
-    this.introTimer = window.setTimeout(done, this.settings.reducedMotion ? 900 : timing.introMaxMs);
+    this.introTimer = window.setTimeout(
+      done,
+      this.settings.reducedMotion ? 900 : timing.introMaxMs,
+    );
   }
 
   private beginPlay(): void {
@@ -400,9 +442,12 @@ export class App {
   private onRoundEvents(events: GameEvent[], st: GameState): void {
     this.audio.onEvents(events, st);
     for (const e of events) {
-      if (e.type === 'FIRE_LOW' && !this.tutorial.eyes) this.tutorialBubble('eyes', ru.tutorial.eyes);
-      if (e.type === 'EMBERS' && !this.tutorial.embers) this.tutorialBubble('embers', ru.tutorial.embers);
-      if (e.type === 'WIND_WARN' && this.level === 3 && !this.tutorial.wind) this.tutorialBubble('wind', ru.tutorial.wind);
+      if (e.type === 'FIRE_LOW' && !this.tutorial.eyes)
+        this.tutorialBubble('eyes', ru.tutorial.eyes);
+      if (e.type === 'EMBERS' && !this.tutorial.embers)
+        this.tutorialBubble('embers', ru.tutorial.embers);
+      if (e.type === 'WIND_WARN' && this.level === 3 && !this.tutorial.wind)
+        this.tutorialBubble('wind', ru.tutorial.wind);
       if (e.type === 'WOLF_IN' || e.type === 'DAWN') this.onRoundOver(st);
     }
     this.syncHud();
@@ -417,14 +462,18 @@ export class App {
     this.panel.setHeader(iconStep(), ru.header.over);
     this.audio.silenceFires();
     // Снимок кадра — в момент рассвета или поражения (чуть позже, чтобы попала сцена финала).
-    setTimeout(() => this.scene?.snapshot((img) => (this.shot = img.src)), st.status === 'won' ? 1300 : 900);
+    setTimeout(
+      () => this.scene?.snapshot((img) => (this.shot = img.src)),
+      st.status === 'won' ? 1300 : 900,
+    );
     const won = st.status === 'won';
     const key = levelKey(this.level);
     if (won) {
       const prev = this.progress.best[key] ?? 0;
       this.progress.best[key] = Math.max(prev, st.stars);
       const nx = nextLevel(this.level);
-      if (nx !== null && !this.progress.unlocked.includes(levelKey(nx))) this.progress.unlocked.push(levelKey(nx));
+      if (nx !== null && !this.progress.unlocked.includes(levelKey(nx)))
+        this.progress.unlocked.push(levelKey(nx));
       writeJson(this.store, 'progress', this.progress);
     }
     this.opts.onFinish?.({
@@ -481,10 +530,11 @@ export class App {
         ),
       );
     if (this.shot) show();
-    else this.scene?.snapshot((img) => {
-      this.shot = img.src;
-      show();
-    });
+    else
+      this.scene?.snapshot((img) => {
+        this.shot = img.src;
+        show();
+      });
   }
 
   // ── Пауза ──────────────────────────────────────────────────────
@@ -526,6 +576,25 @@ export class App {
     this.syncHud();
   }
 
+  private debugBot: PlanFn | null = null;
+
+  private debugBotStep(): void {
+    if (!this.ctl || !this.canAct()) return;
+    this.debugBot ??= makeMixedBot();
+    const st = this.ctl.state;
+    const copy = cloneState(st);
+    // На копии готовое действие не исполняется, иначе оно сразу «съест» намерение бота.
+    copy.hero.ready = false;
+    this.debugBot(copy, []);
+    if (copy.selectedWood !== st.selectedWood) this.selectWood(copy.selectedWood);
+    const it = copy.hero.intent;
+    if (!it || JSON.stringify(it) === JSON.stringify(this.ctl.state.hero.intent)) return;
+    if (it.kind === 'feed') this.onWorldTap({ kind: 'fire', side: it.fire });
+    else if (it.kind === 'pile') this.onWorldTap({ kind: 'pile', wood: copy.selectedWood });
+    else if (it.kind === 'move') this.onWorldTap({ kind: 'cell', cell: it.cell });
+    else this.stay();
+  }
+
   // ── Обучение ───────────────────────────────────────────────────
 
   private tutorialBubble(key: Tutorial, text: string): void {
@@ -543,7 +612,12 @@ export class App {
         this.panel.setMode('active');
       }
     };
-    this.bubbleEl = bubble(text, this.scene?.heroHeadCss() ?? { x: 40, y: 140 }, close, ru.tutorial.ok);
+    this.bubbleEl = bubble(
+      text,
+      this.scene?.heroHeadCss() ?? { x: 40, y: 140 },
+      close,
+      ru.tutorial.ok,
+    );
     this.layout.bubbles.appendChild(this.bubbleEl);
     this.placeBubble();
   }
@@ -675,7 +749,13 @@ export class App {
     const st = this.ctl?.state;
     if (!st) return;
     const h = st.hero;
-    this.gear.update(h.hands.kind, h.hands.count, st.selectedWood, st.level.oak, Math.min(1, st.t / st.nightA));
+    this.gear.update(
+      h.hands.kind,
+      h.hands.count,
+      st.selectedWood,
+      st.level.oak,
+      Math.min(1, st.t / st.nightA),
+    );
     if (this.screen !== 'play') return;
     this.panel.setReadyLock(h.ready);
     if (h.ready) {
@@ -735,7 +815,10 @@ export class App {
     }
     if (fires === 'mixed') {
       s.fires[0].fuel = 3;
-      s.fires[0].logs = [{ kind: 'oak', amount: 2 }, { kind: 'birch', amount: 1 }];
+      s.fires[0].logs = [
+        { kind: 'oak', amount: 2 },
+        { kind: 'birch', amount: 1 },
+      ];
       s.fires[0].embers = null;
       s.fires[0].lowLevel = 0;
     }
@@ -758,7 +841,8 @@ export class App {
       return;
     }
     const d = document.createElement('div');
-    d.style.cssText = 'position:absolute;left:8px;bottom:8px;z-index:50;font:12px monospace;background:rgba(0,0,0,.75);color:#f4eedd;padding:8px;border-radius:8px;max-width:340px;pointer-events:auto';
+    d.style.cssText =
+      'position:absolute;left:8px;bottom:8px;z-index:50;font:12px monospace;background:rgba(0,0,0,.75);color:#f4eedd;padding:8px;border-radius:8px;max-width:340px;pointer-events:auto';
     d.innerHTML = '<pre style="margin:0;white-space:pre-wrap"></pre><div class="btns"></div>';
     const btns = d.querySelector('.btns')!;
     const add = (label: string, fn: () => void) => {
@@ -791,7 +875,9 @@ export class App {
       const s = st();
       if (s) s.t = Math.max(s.t, s.nightA - 5 / s.A);
     });
-    add('бесконечные угли', () => st()?.fires.forEach((f) => f.embers !== null && (f.embers = 1e6)));
+    add('бесконечные угли', () =>
+      st()?.fires.forEach((f) => f.embers !== null && (f.embers = 1e6)),
+    );
     add('тест темноты', () => (location.search = '?scene=dark&fires=embers'));
     this.layout.root.appendChild(d);
     this.debugEl = d;
@@ -810,7 +896,10 @@ export class App {
       `FPS ${fps}  seed ${s.seed}`,
       `T_med ${s.tMed.toFixed(2)}  p ${s.p.toFixed(2)}  A ${s.A.toFixed(2)}`,
       `ночь ${(s.t / s.nightA).toFixed(3)}  (${s.t.toFixed(1)}/${s.nightA.toFixed(1)} A)`,
-      ...s.fires.map((f) => `${['N', 'E', 'S', 'W'][f.side]} fuel ${f.fuel.toFixed(2)} ${f.embers !== null ? `угли ${f.embers.toFixed(2)}` : ''} ${f.catching !== null ? `дуб ${f.catching.toFixed(2)}` : ''} ×${f.mult}`),
+      ...s.fires.map(
+        (f) =>
+          `${['N', 'E', 'S', 'W'][f.side]} fuel ${f.fuel.toFixed(2)} ${f.embers !== null ? `угли ${f.embers.toFixed(2)}` : ''} ${f.catching !== null ? `дуб ${f.catching.toFixed(2)}` : ''} ×${f.mult}`,
+      ),
       `ветер: ${s.gusts.map((g) => `${['N', 'E', 'S', 'W'][g.side]}@${g.start.toFixed(0)}${g.phase === 2 ? '*' : ''}`).join(' ')}`,
     ];
     pre.textContent = lines.join('\n');

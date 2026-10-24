@@ -21,12 +21,16 @@ const dpr = Number(flag('--dpr', '1'));
 const clip = flag('--clip', '');
 const query = args[0] ?? '';
 const prefix = args[1] ?? 'shots/game';
-const sizes = (args.slice(2).length ? args.slice(2) : ['390x844', '768x1024', '1280x720']).map((s) => s.split('x').map(Number));
+const sizes = (args.slice(2).length ? args.slice(2) : ['390x844', '768x1024', '1280x720']).map(
+  (s) => s.split('x').map(Number),
+);
 
 const server = await createServer({ server: { port: 5198, strictPort: false }, logLevel: 'error' });
 await server.listen();
 const port = server.httpServer.address().port;
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+});
 for (const [w, h] of sizes) {
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
   const errors = [];
@@ -48,7 +52,10 @@ for (const [w, h] of sizes) {
   }
   const out = `${prefix}-${w}x${h}.png`;
   const [cx, cy, cw, ch] = clip ? clip.split(',').map(Number) : [];
-  await page.screenshot({ path: out, ...(clip ? { clip: { x: cx, y: cy, width: cw, height: ch } } : {}) });
+  await page.screenshot({
+    path: out,
+    ...(clip ? { clip: { x: cx, y: cy, width: cw, height: ch } } : {}),
+  });
   console.log(out, errors.length ? `\n  ${errors.slice(0, 8).join('\n  ')}` : '');
   await page.close();
 }

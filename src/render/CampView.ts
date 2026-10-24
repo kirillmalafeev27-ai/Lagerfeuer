@@ -51,16 +51,27 @@ export class CampView {
     const half = (look.pile.w / 4) * CELL;
     const d = depthByY(py);
     this.base = artImage(scene, px, py + 0.06 * CELL, K.pileBase).setDepth(d - 0.2);
-    this.glowBirch = artImage(scene, px - half, py - 0.02 * CELL, K.pileGlowBirch).setDepth(DEPTH.overHints - 2).setAlpha(0);
-    this.glowOak = artImage(scene, px + half, py - 0.02 * CELL, K.pileGlowOak).setDepth(DEPTH.overHints - 2).setAlpha(0);
+    this.glowBirch = artImage(scene, px - half, py - 0.02 * CELL, K.pileGlowBirch)
+      .setDepth(DEPTH.overHints - 2)
+      .setAlpha(0);
+    this.glowOak = artImage(scene, px + half, py - 0.02 * CELL, K.pileGlowOak)
+      .setDepth(DEPTH.overHints - 2)
+      .setAlpha(0);
     this.birch = artImage(scene, px - half, py, K.pileBirch, 0).setDepth(d);
     this.oak = artImage(scene, px + half, py, hasOak ? K.pileOak : K.pileStump, 0).setDepth(d);
-    this.signBirch = artImage(scene, px - half, py - 0.52 * CELL, K.signBirch).setDepth(DEPTH.overHints - 1);
-    this.signOak = artImage(scene, px + half, py - 0.52 * CELL, K.signOak).setDepth(DEPTH.overHints - 1).setVisible(hasOak);
+    this.signBirch = artImage(scene, px - half, py - 0.52 * CELL, K.signBirch).setDepth(
+      DEPTH.overHints - 1,
+    );
+    this.signOak = artImage(scene, px + half, py - 0.52 * CELL, K.signOak)
+      .setDepth(DEPTH.overHints - 1)
+      .setVisible(hasOak);
 
     const tx = this.tentPos.x;
     const ty = this.tentPos.y;
-    this.shadowTent = artImage(scene, tx, ty, K.shadow).setDepth(DEPTH.shadows).setScale(artScale() * 1.7, artScale() * 1.2).setAlpha(0.8);
+    this.shadowTent = artImage(scene, tx, ty, K.shadow)
+      .setDepth(DEPTH.shadows)
+      .setScale(artScale() * 1.7, artScale() * 1.2)
+      .setAlpha(0.8);
     this.tent = artImage(scene, tx, ty, K.tent, 0).setDepth(depthByY(ty));
     // Фонарь — на шесте со стороны поляны.
     const side = tent === 0 || tent === 2 ? 1 : -1;
@@ -68,10 +79,33 @@ export class CampView {
     const ly = ty - 0.02 * CELL;
     this.lantern = artImage(scene, lx, ly, K.lantern, 0).setDepth(depthByY(ly));
     if (side < 0) this.lantern.setFlipX(true);
-    this.lanternGlow = artImage(scene, lx + side * 0.1 * CELL, ly - 0.75 * CELL, K.glow).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setScale(artScale() * 0.35).setAlpha(0.5);
-    this.sausages = artImage(scene, tx - side * 0.18 * CELL, ty + 0.02 * CELL, K.sausages, 0).setDepth(depthByY(ty + 2));
+    this.lanternGlow = artImage(scene, lx + side * 0.1 * CELL, ly - 0.75 * CELL, K.glow)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.glow)
+      .setScale(artScale() * 0.35)
+      .setAlpha(0.5);
+    this.sausages = artImage(
+      scene,
+      tx - side * 0.18 * CELL,
+      ty + 0.02 * CELL,
+      K.sausages,
+      0,
+    ).setDepth(depthByY(ty + 2));
     if (side < 0) this.sausages.setFlipX(true);
-    this.all.push(this.base, this.glowBirch, this.glowOak, this.birch, this.oak, this.signBirch, this.signOak, this.shadowTent, this.tent, this.lantern, this.lanternGlow, this.sausages);
+    this.all.push(
+      this.base,
+      this.glowBirch,
+      this.glowOak,
+      this.birch,
+      this.oak,
+      this.signBirch,
+      this.signOak,
+      this.shadowTent,
+      this.tent,
+      this.lantern,
+      this.lanternGlow,
+      this.sausages,
+    );
   }
 
   /** Табличка «Birke» подмигивает (дуб на угли). */
@@ -108,7 +142,9 @@ export class CampView {
       this.signBirch.setAlpha(Math.floor(this.wink * 8) % 2 === 0 ? 1 : 0.5);
     } else this.signBirch.setScale(artScale()).setAlpha(1);
     this.signOak.setAlpha(this.selected === 'oak' ? 1 : 0.8);
-    this.signBirch.setAlpha(this.wink > 0 ? this.signBirch.alpha : this.selected === 'birch' ? 1 : 0.8);
+    this.signBirch.setAlpha(
+      this.wink > 0 ? this.signBirch.alpha : this.selected === 'birch' ? 1 : 0.8,
+    );
     if (this.shake > 0) {
       this.shake = Math.max(0, this.shake - dtMs / 1500);
       this.tent.setRotation(reducedMotion ? 0 : Math.sin(timeMs / 35) * 0.04 * this.shake);

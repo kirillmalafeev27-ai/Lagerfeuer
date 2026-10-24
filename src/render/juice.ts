@@ -6,6 +6,7 @@ import { timing } from '../config/balance.ts';
 import { look } from '../config/look.ts';
 import { mix, palette } from '../config/palette.ts';
 import { wordKey } from '../art/manifest.ts';
+import type { SfxWord } from '../i18n/sfx.de.ts';
 import { type WordColors, pastelWord } from '../shared/pastelKit.ts';
 import { DEPTH } from './depth.ts';
 
@@ -14,12 +15,62 @@ const CELL = look.cell;
 export type WordTone = 'caption' | 'wind' | 'danger' | 'chalk' | 'fire';
 
 const TONES: Record<WordTone, WordColors> = {
-  caption: { fill: palette.caption, shade: mix(palette.caption, palette.chalk, 0.4), chalk: palette.chalk },
+  caption: {
+    fill: palette.caption,
+    shade: mix(palette.caption, palette.chalk, 0.4),
+    chalk: palette.chalk,
+  },
   wind: { fill: palette.wind, shade: palette.hero.jacket, chalk: palette.chalk },
   danger: { fill: palette.chalk, shade: palette.stone.base, chalk: palette.chalk },
   chalk: { fill: palette.chalk, shade: palette.stone.light, chalk: palette.chalk },
   fire: { fill: palette.fire.mid, shade: palette.fire.core, chalk: palette.chalk },
 };
+
+/** Тон каждого слова-звука: по нему же текстуры слов готовятся заранее, при загрузке. */
+export const WORD_TONE: Record<SfxWord, WordTone> = {
+  los: 'caption',
+  klonk: 'caption',
+  fauch: 'caption',
+  plumps: 'chalk',
+  passtNicht: 'chalk',
+  nurBirke: 'chalk',
+  knurr: 'danger',
+  auuuh: 'danger',
+  zisch: 'chalk',
+  glimm: 'danger',
+  drei: 'chalk',
+  zwei: 'chalk',
+  eins: 'chalk',
+  jaul: 'danger',
+  saus: 'wind',
+  wusch: 'wind',
+  hoppla: 'caption',
+  haps: 'danger',
+  huch: 'chalk',
+  gaehn: 'chalk',
+  tschilp: 'caption',
+  kikeriki: 'caption',
+  gutenMorgen: 'caption',
+  knapp: 'caption',
+};
+
+/**
+ * Текстура слова: рисуется один раз. Канва уходит в Phaser как картинка (addImage), а не
+ * CanvasTexture — та читает пиксели обратно (getImageData), и кадр подвисает.
+ */
+export function ensureWordTexture(
+  textures: Phaser.Textures.TextureManager,
+  text: string,
+  tone: WordTone,
+): string {
+  const key = wordKey(`${text}|${tone}`);
+  if (!textures.exists(key))
+    textures.addImage(
+      key,
+      pastelWord(text, TONES[tone], look.word.px) as unknown as HTMLImageElement,
+    );
+  return key;
+}
 
 interface Word {
   img: Phaser.GameObjects.Image;
@@ -41,11 +92,7 @@ export class Juice {
 
   /** Слово-звук над событием, со смещением вверх. */
   word(text: string, x: number, y: number, tone: WordTone = 'caption', scale = 1): void {
-    const key = wordKey(`${text}|${tone}`);
-    if (!this.scene.textures.exists(key)) {
-      const c = pastelWord(text, TONES[tone], look.word.px);
-      this.scene.textures.addCanvas(key, c);
-    }
+    const key = ensureWordTexture(this.scene.textures, text, tone);
     while (this.words.length >= timing.maxWords) {
       const old = this.words.shift();
       old?.img.destroy();
@@ -69,7 +116,11 @@ export class Juice {
       const rise = Math.min(1, w.t / timing.wordRiseMs);
       const ease = 1 - Math.pow(1 - rise, 3);
       const base = look.word.scale * w.scale * (CELL / look.word.px) * 0.42;
-      const pop = this.reducedMotion ? 1 : rise < 0.25 ? 0.6 + (rise / 0.25) * 0.55 : 1.15 - Math.min(0.15, (rise - 0.25) * 0.4);
+      const pop = this.reducedMotion
+        ? 1
+        : rise < 0.25
+          ? 0.6 + (rise / 0.25) * 0.55
+          : 1.15 - Math.min(0.15, (rise - 0.25) * 0.4);
       w.img.setPosition(w.x, w.y - ease * look.word.rise * CELL);
       w.img.setScale(base * pop);
       w.img.setAlpha(p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1);

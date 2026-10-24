@@ -57,7 +57,13 @@ export class GearWidget {
     this.el.classList.toggle('at-right', !left);
   }
 
-  update(kind: WoodKind | null, count: number, selected: WoodKind, hasOak: boolean, nightShare: number): void {
+  update(
+    kind: WoodKind | null,
+    count: number,
+    selected: WoodKind,
+    hasOak: boolean,
+    nightShare: number,
+  ): void {
     const key = `${kind}|${count}|${selected}|${hasOak}|${Math.round(nightShare * 20)}`;
     if (key === this.last) return;
     this.last = key;

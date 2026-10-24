@@ -60,7 +60,11 @@ export function buildLevel(levelId: LevelId, seed: number, pace: Pace, stretch =
   for (let i = 0; i < level.open; i++) kinds.push('open');
   while (kinds.length < 4) kinds.push('normal');
   const multOf = (k: Shelter) =>
-    k === 'sheltered' ? balance.multSheltered : k === 'open' ? balance.multOpen : balance.multNormal;
+    k === 'sheltered'
+      ? balance.multSheltered
+      : k === 'open'
+        ? balance.multOpen
+        : balance.multNormal;
   kinds.sort((a, b) => multOf(a) - multOf(b));
   const pairA: Shelter[] = shuffle(rng, [kinds[0], kinds[3]]);
   const pairB: Shelter[] = shuffle(rng, [kinds[1], kinds[2]]);
@@ -133,13 +137,24 @@ export function buildLevel(levelId: LevelId, seed: number, pace: Pace, stretch =
  * Уровень, прошедший номинальный прогон. До nominalAttempts сидов; если ни один не прошёл,
  * промежутки между порывами растягиваются на 20% и пишется предупреждение.
  */
-export function generateLevel(levelId: LevelId, seed: number, pace: Pace, opts: GenOptions = {}): GenResult {
-  if (opts.skipNominal) return { state: buildLevel(levelId, seed, pace), attempts: 1, stretched: false };
+export function generateLevel(
+  levelId: LevelId,
+  seed: number,
+  pace: Pace,
+  opts: GenOptions = {},
+): GenResult {
+  if (opts.skipNominal)
+    return { state: buildLevel(levelId, seed, pace), attempts: 1, stretched: false };
   for (let attempt = 0; attempt < balance.nominalAttempts; attempt++) {
     const s = buildLevel(levelId, attempt === 0 ? seed : hashSeed(seed, attempt), pace);
     if (nominalSurvives(s)) return { state: s, attempts: attempt + 1, stretched: false };
   }
-  const s = buildLevel(levelId, hashSeed(seed, balance.nominalAttempts), pace, balance.nominalWindStretch);
+  const s = buildLevel(
+    levelId,
+    hashSeed(seed, balance.nominalAttempts),
+    pace,
+    balance.nominalWindStretch,
+  );
   (opts.warn ?? console.warn)(
     `bonfires: level ${String(levelId)} seed ${seed}: no seed passed the nominal run, wind gaps stretched by 20%`,
   );

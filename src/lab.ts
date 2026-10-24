@@ -14,7 +14,10 @@ async function main(): Promise<void> {
   const scale = Number(q.get('scale') ?? 1);
   const low = q.get('low') === '1';
   const bg = q.get('bg');
-  await Promise.all([document.fonts.load('64px "Rubik Scribble"'), document.fonts.load('20px Rubik')]);
+  await Promise.all([
+    document.fonts.load('64px "Rubik Scribble"'),
+    document.fonts.load('20px Rubik'),
+  ]);
   const C = low ? look.texCell.low : look.texCell.high;
   configureKit({ paper: palette.paper, res: C / look.cell });
   const rc: RC = { C, res: C / look.cell, seed: Number(q.get('seed') ?? 7) };

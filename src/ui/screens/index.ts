@@ -5,7 +5,11 @@ import { ru } from '../../i18n/ru.ts';
 import { tipsRu } from '../../i18n/tips.ru.ts';
 import { iconLog, iconStar } from '../icons.ts';
 
-export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
+export function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  cls?: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;
@@ -56,7 +60,15 @@ export function menuScreen(h: { onPlay(): void; onSettings(): void }): HTMLEleme
 function traits(l: LevelConfig): string {
   const t = ru.levels.traits;
   const parts: string[] = [l.oak ? t.oak : t.noOak, l.wind ? t.wind : t.noWind];
-  parts.push(l.hints === 'all' ? t.hintsAll : l.hints === 'targetRing' ? t.hintsTarget : l.hints === 'oak' ? t.hintsOak : t.hintsNone);
+  parts.push(
+    l.hints === 'all'
+      ? t.hintsAll
+      : l.hints === 'targetRing'
+        ? t.hintsTarget
+        : l.hints === 'oak'
+          ? t.hintsOak
+          : t.hintsNone,
+  );
   return parts.join(' · ');
 }
 
@@ -86,7 +98,10 @@ export function levelsScreen(h: {
     b.innerHTML = `<span class="bf-level-num">${ru.levels.short(id)}</span><span class="bf-level-name"></span><span class="bf-stars">${starsHtml(h.best(l.id))}</span><span class="bf-traits"></span>`;
     (b.querySelector('.bf-level-name') as HTMLElement).textContent = ru.levels.name(id);
     (b.querySelector('.bf-traits') as HTMLElement).textContent = traits(l);
-    b.setAttribute('aria-label', `${ru.levels.name(id)}. ${open ? `${ru.levels.best}: ${h.best(l.id)} ★` : ru.levels.locked}`);
+    b.setAttribute(
+      'aria-label',
+      `${ru.levels.name(id)}. ${open ? `${ru.levels.best}: ${h.best(l.id)} ★` : ru.levels.locked}`,
+    );
     b.addEventListener('click', () => h.onPick(l.id));
     grid.appendChild(b);
     if (open) first = b;
@@ -107,13 +122,23 @@ export function introScreen(onSkip: () => void): HTMLElement {
   return root;
 }
 
-export function pauseScreen(h: { onResume(): void; onRestart(): void; onMenu(): void; onSettings(): void }): HTMLElement {
+export function pauseScreen(h: {
+  onResume(): void;
+  onRestart(): void;
+  onMenu(): void;
+  onSettings(): void;
+}): HTMLElement {
   const root = screen('is-dim');
   const sheet = el('div', 'bf-sheet');
   sheet.appendChild(el('h2', 'bf-h2', ru.pause.title));
   const row = el('div', 'bf-row');
   const resume = button(ru.pause.resume, 'is-primary', h.onResume);
-  row.append(resume, button(ru.pause.restart, '', h.onRestart), button(ru.pause.settings, '', h.onSettings), button(ru.pause.menu, '', h.onMenu));
+  row.append(
+    resume,
+    button(ru.pause.restart, '', h.onRestart),
+    button(ru.pause.settings, '', h.onSettings),
+    button(ru.pause.menu, '', h.onMenu),
+  );
   sheet.appendChild(row);
   root.appendChild(sheet);
   setTimeout(() => resume.focus(), 50);
@@ -140,7 +165,10 @@ export interface ResultsData {
   onTally?: (i: number) => void;
 }
 
-export function resultsScreen(d: ResultsData, h: { onAgain(): void; onNext(): void; onMenu(): void }): HTMLElement {
+export function resultsScreen(
+  d: ResultsData,
+  h: { onAgain(): void; onNext(): void; onMenu(): void },
+): HTMLElement {
   const r = ru.results;
   const root = screen('is-dim');
   root.style.flexDirection = 'column';
@@ -172,13 +200,21 @@ export function resultsScreen(d: ResultsData, h: { onAgain(): void; onNext(): vo
   const c3 = el('div', 'bf-rcard');
   const stars = el('div', 'bf-bigstars');
   stars.setAttribute('aria-label', `${r.starsTitle}: ${d.stars}`);
-  stars.innerHTML = [0, 1, 2].map((i) => `<img src="${iconStar(i < d.stars)}" alt="" style="height:46px">`).join('');
+  stars.innerHTML = [0, 1, 2]
+    .map((i) => `<img src="${iconStar(i < d.stars)}" alt="" style="height:46px">`)
+    .join('');
   c3.appendChild(stars);
   const lines: Array<[string, string]> = [];
   if (d.stars >= 1) lines.push(['★', r.star1]);
   if (d.stars >= 2) lines.push(['★★', r.star2]);
   if (d.stars >= 3) lines.push(['★★★', r.star3]);
-  lines.push([r.correct, String(d.correct)], [r.wrong, String(d.wrong)], [r.median, r.sec(d.medianSec)], [r.gusts, String(d.gusts)], [r.record, '★'.repeat(d.record) || '—']);
+  lines.push(
+    [r.correct, String(d.correct)],
+    [r.wrong, String(d.wrong)],
+    [r.median, r.sec(d.medianSec)],
+    [r.gusts, String(d.gusts)],
+    [r.record, '★'.repeat(d.record) || '—'],
+  );
   if (d.cause) lines.push([r.cause, r.causeText(d.cause.near, d.cause.gust)]);
   for (const [a, b] of lines) {
     const row = el('div', 'bf-stat');
@@ -227,7 +263,11 @@ export interface SettingsData {
   words: 'de' | 'ru';
 }
 
-export function settingsScreen(d: SettingsData, onChange: (d: SettingsData) => void, onClose: () => void): HTMLElement {
+export function settingsScreen(
+  d: SettingsData,
+  onChange: (d: SettingsData) => void,
+  onClose: () => void,
+): HTMLElement {
   const s = ru.settings;
   const root = screen('is-dim');
   const sheet = el('div', 'bf-sheet bf-settings');
@@ -275,10 +315,22 @@ export function settingsScreen(d: SettingsData, onChange: (d: SettingsData) => v
     });
     return sel;
   };
-  row(s.sound, check(!v.muted, (x) => (v.muted = !x)));
-  row(s.sfx, range(v.sfx, (x) => (v.sfx = x)));
-  row(s.ambient, range(v.ambient, (x) => (v.ambient = x)));
-  row(s.reducedMotion, check(v.reducedMotion, (x) => (v.reducedMotion = x)));
+  row(
+    s.sound,
+    check(!v.muted, (x) => (v.muted = !x)),
+  );
+  row(
+    s.sfx,
+    range(v.sfx, (x) => (v.sfx = x)),
+  );
+  row(
+    s.ambient,
+    range(v.ambient, (x) => (v.ambient = x)),
+  );
+  row(
+    s.reducedMotion,
+    check(v.reducedMotion, (x) => (v.reducedMotion = x)),
+  );
   row(
     s.quality,
     select(
@@ -323,7 +375,12 @@ export function settingsScreen(d: SettingsData, onChange: (d: SettingsData) => v
 }
 
 /** Пузырь героя с подсказкой обучения. */
-export function bubble(text: string, at: { x: number; y: number }, onOk: () => void, ok: string): HTMLElement {
+export function bubble(
+  text: string,
+  at: { x: number; y: number },
+  onOk: () => void,
+  ok: string,
+): HTMLElement {
   const b = el('div', 'bf-bubble');
   b.setAttribute('role', 'dialog');
   b.appendChild(el('div', '', text));

@@ -3,12 +3,30 @@
 import { look } from '../../config/look.ts';
 import { mix, palette } from '../../config/palette.ts';
 import { K } from '../manifest.ts';
-import { type Pt, chalkLine, crumbs, lightBrush, makePen, mulberry32, pastelFill, pastelStroke, smudge } from '../../shared/pastelKit.ts';
+import {
+  type Pt,
+  chalkLine,
+  crumbs,
+  lightBrush,
+  makePen,
+  mulberry32,
+  pastelFill,
+  pastelStroke,
+  smudge,
+} from '../../shared/pastelKit.ts';
 import { type RC, type Tex, canvasFor, ellipsePts, roundRectPts, tex } from './common.ts';
 
 const g = look.gauge;
 
-export function gaugeSize(C: number): { w: number; h: number; slotW: number; slotH: number; gap: number; padX: number; padY: number } {
+export function gaugeSize(C: number): {
+  w: number;
+  h: number;
+  slotW: number;
+  slotH: number;
+  gap: number;
+  padX: number;
+  padY: number;
+} {
   const slotW = C * g.slotW;
   const slotH = C * g.slotH;
   const gap = C * g.gap;
@@ -34,7 +52,15 @@ function plate(rc: RC): HTMLCanvasElement {
   for (let i = 0; i < 3; i++) {
     const sx = m + gs.padX + i * (gs.slotW + gs.gap);
     const slot = roundRectPts(pen, sx, m + gs.padY, gs.slotW, gs.slotH, gs.slotH * 0.4);
-    chalkLine(x, pen, slot, Math.max(1, rc.C * 0.006), mix(palette.chalk, palette.paper, 0.55), true, 0.6);
+    chalkLine(
+      x,
+      pen,
+      slot,
+      Math.max(1, rc.C * 0.006),
+      mix(palette.chalk, palette.paper, 0.55),
+      true,
+      0.6,
+    );
   }
   chalkLine(x, pen, body, Math.max(1.4, rc.C * 0.014), palette.chalk, true, 0.95);
   return c;
@@ -49,11 +75,26 @@ function logIcon(rc: RC, kind: 'birch' | 'oak'): HTMLCanvasElement {
   const pen = makePen(rc.seed * (kind === 'birch' ? 191 : 193), 0, 0);
   const body = roundRectPts(pen, 1, 1.5, W - 2, H - 3, H * 0.42);
   // Берёза — белое поленце с чёрточками; дуб — светло-охристый, с кольцами на торце.
-  const bark = kind === 'birch' ? palette.birch.bark : mix(palette.oak.light, palette.oak.end, 0.45);
-  const shade = kind === 'birch' ? mix(palette.birch.bark, palette.birch.inner, 0.55) : mix(palette.oak.light, palette.oak.bark, 0.2);
-  pastelFill(x, pen, body, bark, -0.1, 1.5, { stroke: Math.max(2, H * 0.3), under: 1, cross: 0.12, tones: [bark, bark, shade], grain: false });
+  const bark =
+    kind === 'birch' ? palette.birch.bark : mix(palette.oak.light, palette.oak.end, 0.45);
+  const shade =
+    kind === 'birch'
+      ? mix(palette.birch.bark, palette.birch.inner, 0.55)
+      : mix(palette.oak.light, palette.oak.bark, 0.2);
+  pastelFill(x, pen, body, bark, -0.1, 1.5, {
+    stroke: Math.max(2, H * 0.3),
+    under: 1,
+    cross: 0.12,
+    tones: [bark, bark, shade],
+    grain: false,
+  });
   const low = roundRectPts(pen, 3, H * 0.66, W - 6, H * 0.24, H * 0.12);
-  pastelFill(x, pen, low, shade, 0, 1.2, { stroke: Math.max(2, H * 0.22), under: 0.7, cross: 0, grain: false });
+  pastelFill(x, pen, low, shade, 0, 1.2, {
+    stroke: Math.max(2, H * 0.22),
+    under: 0.7,
+    cross: 0,
+    grain: false,
+  });
   const ex = W - H * 0.34;
   if (kind === 'birch') {
     // Чёткие чёрные чёрточки: шкала не кипит и должна читаться мелко.
@@ -76,17 +117,37 @@ function logIcon(rc: RC, kind: 'birch' | 'oak'): HTMLCanvasElement {
     }
     x.restore();
   } else {
-    for (const v of [0.36, 0.62]) pastelStroke(x, pen, [{ x: H * 0.35, y: H * v }, { x: ex - H * 0.35, y: H * v + 0.6 }], Math.max(1.2, H * 0.08), palette.oak.bark, 0.75, { taper: 0.4, grain: false });
+    for (const v of [0.36, 0.62])
+      pastelStroke(
+        x,
+        pen,
+        [
+          { x: H * 0.35, y: H * v },
+          { x: ex - H * 0.35, y: H * v + 0.6 },
+        ],
+        Math.max(1.2, H * 0.08),
+        palette.oak.bark,
+        0.75,
+        { taper: 0.4, grain: false },
+      );
   }
   // Торец справа: у берёзы — светлая древесина, у дуба — охра с годовыми кольцами.
   const endCol = kind === 'birch' ? palette.birch.inner : palette.oak.end;
   const rx = H * (kind === 'birch' ? 0.2 : 0.26);
   const ry = H * (kind === 'birch' ? 0.34 : 0.4);
-  pastelFill(x, pen, ellipsePts(ex, H / 2, rx, ry, 14), endCol, 0.3, 1.5, { stroke: Math.max(1.5, H * 0.18), under: 1, cross: 0, grain: false });
+  pastelFill(x, pen, ellipsePts(ex, H / 2, rx, ry, 14), endCol, 0.3, 1.5, {
+    stroke: Math.max(1.5, H * 0.18),
+    under: 1,
+    cross: 0,
+    grain: false,
+  });
   if (kind === 'oak') {
     for (const k of [0.62, 0.3]) {
       const ring = ellipsePts(ex, H / 2, rx * k, ry * k, 12);
-      pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, H * 0.06), palette.oak.ring, 1, { taper: 0, grain: false });
+      pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, H * 0.06), palette.oak.ring, 1, {
+        taper: 0,
+        grain: false,
+      });
     }
   }
   return c;
@@ -129,8 +190,30 @@ function fireStrip(rc: RC): HTMLCanvasElement {
   const w = Math.ceil(gs.slotH * 0.55);
   const [c, x] = canvasFor(w, gs.slotH + 2);
   const pen = makePen(rc.seed * 199, 0, 0);
-  pastelStroke(x, pen, [{ x: w / 2, y: gs.slotH }, { x: w / 2, y: 1 }], w * 0.85, palette.fire.mid, 1, { taper: 0.2, grain: false });
-  pastelStroke(x, pen, [{ x: w / 2, y: gs.slotH * 0.85 }, { x: w / 2, y: gs.slotH * 0.25 }], w * 0.4, palette.fire.core, 1, { taper: 0.3, grain: false });
+  pastelStroke(
+    x,
+    pen,
+    [
+      { x: w / 2, y: gs.slotH },
+      { x: w / 2, y: 1 },
+    ],
+    w * 0.85,
+    palette.fire.mid,
+    1,
+    { taper: 0.2, grain: false },
+  );
+  pastelStroke(
+    x,
+    pen,
+    [
+      { x: w / 2, y: gs.slotH * 0.85 },
+      { x: w / 2, y: gs.slotH * 0.25 },
+    ],
+    w * 0.4,
+    palette.fire.core,
+    1,
+    { taper: 0.3, grain: false },
+  );
   return c;
 }
 
@@ -158,7 +241,8 @@ function ghostIcon(rc: RC): HTMLCanvasElement {
       const p = { x: a.x + ((b.x - a.x) * t) / l, y: a.y + ((b.y - a.y) * t) / l };
       if (on) cur.push(p);
       if (acc >= dash - 1e-6) {
-        if (on && cur.length > 1) chalkLine(x, pen, cur, Math.max(1.4, gs.slotH * 0.12), palette.chalk, false, 1);
+        if (on && cur.length > 1)
+          chalkLine(x, pen, cur, Math.max(1.4, gs.slotH * 0.12), palette.chalk, false, 1);
         on = !on;
         acc = 0;
         cur = [p];
@@ -167,7 +251,16 @@ function ghostIcon(rc: RC): HTMLCanvasElement {
   }
   const ex = W - gs.slotH * 0.45;
   const end = ellipsePts(ex, gs.slotH / 2, gs.slotH * 0.28, gs.slotH * 0.38, 10);
-  for (let i = 0; i < end.length; i += 2) chalkLine(x, pen, [end[i], end[(i + 1) % end.length]], Math.max(1.2, gs.slotH * 0.1), palette.chalk, false, 1);
+  for (let i = 0; i < end.length; i += 2)
+    chalkLine(
+      x,
+      pen,
+      [end[i], end[(i + 1) % end.length]],
+      Math.max(1.2, gs.slotH * 0.1),
+      palette.chalk,
+      false,
+      1,
+    );
   return c;
 }
 
@@ -203,7 +296,14 @@ function routeDot(rc: RC): HTMLCanvasElement {
   const s = Math.ceil(rc.C * 0.09);
   const [c, x] = canvasFor(s, s);
   const pen = makePen(rc.seed * 227, 0, 0);
-  crumbs(x, pen, { x: s * 0.35, y: s * 0.35, w: s * 0.3, h: s * 0.3 }, palette.hints.route, 3, s * 0.22);
+  crumbs(
+    x,
+    pen,
+    { x: s * 0.35, y: s * 0.35, w: s * 0.3, h: s * 0.3 },
+    palette.hints.route,
+    3,
+    s * 0.22,
+  );
   return c;
 }
 
@@ -244,7 +344,15 @@ function windIcon(rc: RC): HTMLCanvasElement {
       { x: x1 + W * 0.02, y: y - H * 0.2 },
       { x: x1 - W * 0.06, y: y - H * 0.12 },
     ];
-    chalkLine(x, pen, i === 1 ? curl.slice(0, 2) : curl, Math.max(1.4, C * 0.016), palette.wind, false, 1);
+    chalkLine(
+      x,
+      pen,
+      i === 1 ? curl.slice(0, 2) : curl,
+      Math.max(1.4, C * 0.016),
+      palette.wind,
+      false,
+      1,
+    );
   }
   return c;
 }
@@ -289,7 +397,8 @@ export function drawHud(rc: RC): Tex[] {
 export function drawBrushes(rc: RC): Tex[] {
   const size = rc.C >= 128 ? 320 : 224;
   const out: Tex[] = [];
-  for (let i = 0; i < 3; i++) out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size)));
+  for (let i = 0; i < 3; i++)
+    out.push(tex(K.brush(i), lightBrush(mulberry32(rc.seed * 241 + i), size)));
   out.push(tex(K.brushSoft, lightBrush(mulberry32(rc.seed * 251), size, 0.15, 0.3, 0.35)));
   {
     // Маска неба: сверху полная, к низу полосы зернисто сходит на нет.

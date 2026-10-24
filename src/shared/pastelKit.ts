@@ -135,7 +135,10 @@ export function blob(rng: Rng, w: number, h: number, opts: BlobOpts = {}): Pt[] 
     const r = 1 + (rng() - 0.5) * 2 * irr;
     const x = Math.cos(a) * (w / 2) * r;
     const y = Math.sin(a) * (h / 2) * r;
-    pts.push({ x: cx + x * Math.cos(rot) - y * Math.sin(rot), y: cy + x * Math.sin(rot) + y * Math.cos(rot) });
+    pts.push({
+      x: cx + x * Math.cos(rot) - y * Math.sin(rot),
+      y: cy + x * Math.sin(rot) + y * Math.cos(rot),
+    });
   }
   return chaikin(pts, opts.smooth ?? 2, true);
 }
@@ -379,7 +382,13 @@ function fiberProfile(rng: Rng, w: number): Float32Array {
 }
 
 /** Отпечаток кисти: плотная середина, рваный край, волокна вдоль штриха, зерно. */
-function makeDab(rng: Rng, kind: BrushKind, w: number, h: number, profile: Float32Array): HTMLCanvasElement {
+function makeDab(
+  rng: Rng,
+  kind: BrushKind,
+  w: number,
+  h: number,
+  profile: Float32Array,
+): HTMLCanvasElement {
   const c = makeCanvas(w, h);
   const x = ctx2d(c);
   const img = x.createImageData(w, h);
@@ -452,7 +461,16 @@ function tintedDabs(kind: BrushKind, color: string): HTMLCanvasElement[] {
 }
 
 /** setTransform поверх текущего преобразования M (а не вместо него). */
-function setComposed(ctx: CanvasRenderingContext2D, M: DOMMatrix, a: number, b: number, c: number, d: number, e: number, f: number): void {
+function setComposed(
+  ctx: CanvasRenderingContext2D,
+  M: DOMMatrix,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+): void {
   ctx.setTransform(
     M.a * a + M.c * b,
     M.b * a + M.d * b,
@@ -508,7 +526,16 @@ function stampStroke(
     const ca = Math.cos(ang);
     const sa = Math.sin(ang);
     // Отпечаток: «ширина» кисти — поперёк направления штриха.
-    setComposed(ctx, M, -sa * sAcross * sc, ca * sAcross * sc, ca * sAlong * sc, sa * sAlong * sc, p.x, p.y);
+    setComposed(
+      ctx,
+      M,
+      -sa * sAcross * sc,
+      ca * sAcross * sc,
+      ca * sAlong * sc,
+      sa * sAlong * sc,
+      p.x,
+      p.y,
+    );
     ctx.globalAlpha = Math.min(1, pressure * (0.72 + pen.jit() * 0.4));
     const d = dabs[Math.floor(pen.jit() * dabs.length)];
     ctx.drawImage(d, -b.w / 2, -b.h / 2);
@@ -567,7 +594,12 @@ export class PastelLayer {
   }
 
   /** Перенести слой на канву с зерном density (по умолчанию — зерно кита). */
-  end(rng: Rng, density = kit.tooth, alpha = 1, op: GlobalCompositeOperation = 'source-over'): void {
+  end(
+    rng: Rng,
+    density = kit.tooth,
+    alpha = 1,
+    op: GlobalCompositeOperation = 'source-over',
+  ): void {
     applyGrain(this.ctx, rng, 0, 0, this.w, this.h, density);
     this.target.save();
     this.target.setTransform(1, 0, 0, 1, 0, 0);
@@ -628,11 +660,31 @@ export function pastelFill(
   const tones = o.tones ?? [color];
   hatchStamp(ctx, pen, bb, tones, angle, density, sw, pressure, o.kind ?? 'wax', o.len ?? 1);
   const cross = o.cross ?? 0.5;
-  if (cross > 0) hatchStamp(ctx, pen, bb, tones, angle + 1.2, density * 0.55, sw * 0.9, pressure * cross, o.kind ?? 'wax', o.len ?? 1);
+  if (cross > 0)
+    hatchStamp(
+      ctx,
+      pen,
+      bb,
+      tones,
+      angle + 1.2,
+      density * 0.55,
+      sw * 0.9,
+      pressure * cross,
+      o.kind ?? 'wax',
+      o.len ?? 1,
+    );
   ctx.restore();
   if (o.grain === true) {
     const m = sw + over + 2;
-    applyGrain(ctx, pen.jit, bb.x - m, bb.y - m, bb.w + m * 2, bb.h + m * 2, kit.tooth * (1.15 - pressure * 0.5));
+    applyGrain(
+      ctx,
+      pen.jit,
+      bb.x - m,
+      bb.y - m,
+      bb.w + m * 2,
+      bb.h + m * 2,
+      kit.tooth * (1.15 - pressure * 0.5),
+    );
   }
 }
 
@@ -673,7 +725,11 @@ function stripSet(kind: BrushKind, wi: number): StripSet {
         { x: pad + len / 2, y: h / 2 + bend },
         { x: pad + len, y: h / 2 },
       ];
-      stampStroke(x, pen, chaikin(pts, 2, false), w, '#ffffff', 1, { kind, taper: Math.min(0.9, (w * 1.6) / len), spacing: 0.3 });
+      stampStroke(x, pen, chaikin(pts, 2, false), w, '#ffffff', 1, {
+        kind,
+        taper: Math.min(0.9, (w * 1.6) / len),
+        spacing: 0.3,
+      });
       out.push(c);
     }
     return out;
@@ -720,7 +776,8 @@ export function strip(
   if (len < 0.5 || width <= 0) return;
   let wi = 0;
   for (let i = 1; i < STRIP_WIDTHS.length; i++) {
-    if (Math.abs(Math.log(STRIP_WIDTHS[i] / width)) < Math.abs(Math.log(STRIP_WIDTHS[wi] / width))) wi = i;
+    if (Math.abs(Math.log(STRIP_WIDTHS[i] / width)) < Math.abs(Math.log(STRIP_WIDTHS[wi] / width)))
+      wi = i;
   }
   const set = stripSet(kind, wi);
   const strips = tintedStrips(kind, wi, color);
@@ -776,7 +833,18 @@ function hatchStamp(
       const x0 = ox + ca * s0;
       const y0 = oy + sa * s0;
       const tone = tones[Math.floor(pen.jit() * tones.length)];
-      strip(ctx, pen, x0, y0, x0 + Math.cos(a) * (s1 - s0), y0 + Math.sin(a) * (s1 - s0), sw * (0.85 + pen.jit() * 0.3), tone, pressure * (0.75 + pen.jit() * 0.35), kind);
+      strip(
+        ctx,
+        pen,
+        x0,
+        y0,
+        x0 + Math.cos(a) * (s1 - s0),
+        y0 + Math.sin(a) * (s1 - s0),
+        sw * (0.85 + pen.jit() * 0.3),
+        tone,
+        pressure * (0.75 + pen.jit() * 0.35),
+        kind,
+      );
       s0 = s1 + sw * (0.25 + pen.jit() * 1.1);
     }
   }
@@ -798,7 +866,13 @@ export function layer(
   path: Pt[],
   colors: readonly string[],
   lightDir: LightDir = { x: -0.6, y: -0.8 },
-  o: { angle?: number; density?: number; stroke?: number; lightReach?: number; darkReach?: number } = {},
+  o: {
+    angle?: number;
+    density?: number;
+    stroke?: number;
+    lightReach?: number;
+    darkReach?: number;
+  } = {},
 ): void {
   const angle = o.angle ?? -0.7;
   const density = o.density ?? 1;
@@ -818,9 +892,18 @@ export function layer(
     const tmp = borrow(W, H);
     const t = ctx2d(tmp);
     t.translate(-b.x + m, -b.y + m);
-    pastelFill(t, pen, inflate(path, -1), color, ang, density * 0.9, { stroke: sw * 0.9, under: 0.15, cross: 0.3 });
+    pastelFill(t, pen, inflate(path, -1), color, ang, density * 0.9, {
+      stroke: sw * 0.9,
+      under: 0.15,
+      cross: 0.3,
+    });
     // Маска: линейно от стороны света к центру.
-    const g = t.createLinearGradient(cx + lx * R * dir, cy + ly * R * dir, cx - lx * R * dir * (reach - 1), cy - ly * R * dir * (reach - 1));
+    const g = t.createLinearGradient(
+      cx + lx * R * dir,
+      cy + ly * R * dir,
+      cx - lx * R * dir * (reach - 1),
+      cy - ly * R * dir * (reach - 1),
+    );
     g.addColorStop(0, `rgba(0,0,0,${alpha})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
     t.globalCompositeOperation = 'destination-in';
@@ -835,7 +918,13 @@ export function layer(
 }
 
 /** Процарапывание: линии цвета бумаги поверх пастели (source-atop). */
-export function sgraffito(ctx: CanvasRenderingContext2D, pen: Pen, lines: Pt[][], width = 1.2, color = kit.paper): void {
+export function sgraffito(
+  ctx: CanvasRenderingContext2D,
+  pen: Pen,
+  lines: Pt[][],
+  width = 1.2,
+  color = kit.paper,
+): void {
   ctx.save();
   ctx.globalCompositeOperation = 'source-atop';
   ctx.strokeStyle = color;
@@ -894,7 +983,11 @@ export function chalkLine(
   const p = closed ? path.concat([path[0]]) : path;
   pastelStroke(ctx, pen, p, width, color, pressure, { kind: 'chalk', taper: closed ? 0 : 0.2 });
   const p2 = jitterPath(p, pen.jit, width * 0.3 + pen.amp * 0.5);
-  pastelStroke(ctx, pen, p2, width * 0.6, color, pressure * 0.75, { kind: 'chalk', taper: 0.25, grain: false });
+  pastelStroke(ctx, pen, p2, width * 0.6, color, pressure * 0.75, {
+    kind: 'chalk',
+    taper: 0.25,
+    grain: false,
+  });
 }
 
 /** Растёртое пальцем пятно с зернистым краем: ореолы, контактные тени, дым. */
@@ -988,7 +1081,13 @@ export function crumbs(
  * прозрачность-стирание, к краю — зернисто до нуля, как край пастели на бумаге.
  * grain — сила зерна (1 — полное, меньше — мягче, для широкого ровного света фонаря).
  */
-export function lightBrush(rng: Rng, size: number, core = 0.38, softness = 0.16, grain = 1): HTMLCanvasElement {
+export function lightBrush(
+  rng: Rng,
+  size: number,
+  core = 0.38,
+  softness = 0.16,
+  grain = 1,
+): HTMLCanvasElement {
   const c = makeCanvas(size, size);
   const x = ctx2d(c);
   const img = x.createImageData(size, size);
@@ -1009,7 +1108,8 @@ export function lightBrush(rng: Rng, size: number, core = 0.38, softness = 0.16,
       const ff = f * f * (3 - 2 * f);
       const n = 0.5 + (fine[i] * 0.65 + mid[i] * 0.35 - 0.5) * grain;
       // Мягкий порог шума: ближе к краю пастель ложится только на вершины зерна.
-      const a = smooth01((ff - n * 0.85 + softness * 0.5) / softness) * Math.min(1, ff * 1.6 + 0.08);
+      const a =
+        smooth01((ff - n * 0.85 + softness * 0.5) / softness) * Math.min(1, ff * 1.6 + 0.08);
       img.data[i * 4] = 255;
       img.data[i * 4 + 1] = 255;
       img.data[i * 4 + 2] = 255;
@@ -1043,7 +1143,9 @@ export function wobbleCopy(src: HTMLCanvasElement, rng: Rng, amp: number): HTMLC
     const ph = rng() * Math.PI * 2;
     const fr = 0.7 + rng() * 0.9;
     for (let p = 0; p < span; p += band) {
-      const d = Math.round(Math.sin(ph + (p / span) * Math.PI * 2 * fr) * a * 0.75 + (rng() - 0.5) * a * 0.8);
+      const d = Math.round(
+        Math.sin(ph + (p / span) * Math.PI * 2 * fr) * a * 0.75 + (rng() - 0.5) * a * 0.8,
+      );
       const len = Math.min(band, span - p);
       if (horizontal) x.drawImage(from, 0, p, W, len, d, p, W, len);
       else x.drawImage(from, p, 0, len, H, p, d, len, H);
@@ -1058,7 +1160,12 @@ export function wobbleCopy(src: HTMLCanvasElement, rng: Rng, amp: number): HTMLC
  * Рисунок делается один раз, остальные варианты — дрожащие копии: силуэт не меняется,
  * а зерно бумаги фабрика накладывает на каждый вариант своё.
  */
-export function boilVariants(draw: (pen: Pen, variant: number) => HTMLCanvasElement, seed: number, n = 3, amp = 1.2): HTMLCanvasElement[] {
+export function boilVariants(
+  draw: (pen: Pen, variant: number) => HTMLCanvasElement,
+  seed: number,
+  n = 3,
+  amp = 1.2,
+): HTMLCanvasElement[] {
   const base = draw(makePen(seed, 0, 0), 0);
   const out = [base];
   const rng = mulberry32(seed ^ 0x5bd1e995);
@@ -1080,7 +1187,12 @@ const wordCache = new Map<string, HTMLCanvasElement>();
  * Слово-звук шрифтом Rubik Scribble: пастельная заливка, меловой контур,
  * буквы чуть повёрнуты. Кэшируется.
  */
-export function pastelWord(text: string, colors: WordColors, fontPx = 64, font = '"Rubik Scribble", "Rubik", sans-serif'): HTMLCanvasElement {
+export function pastelWord(
+  text: string,
+  colors: WordColors,
+  fontPx = 64,
+  font = '"Rubik Scribble", "Rubik", sans-serif',
+): HTMLCanvasElement {
   const key = `${text}|${colors.fill}|${colors.shade}|${colors.chalk}|${fontPx}`;
   const hit = wordCache.get(key);
   if (hit) return hit;
@@ -1135,8 +1247,30 @@ export function pastelWord(text: string, colors: WordColors, fontPx = 64, font =
   f.fillStyle = colors.fill;
   drawGlyphs(f, 'fill');
   f.globalCompositeOperation = 'source-atop';
-  hatchStamp(f, pen, { x: 0, y: H * 0.45, w: W, h: H * 0.6 }, [colors.shade], -0.5, 0.5, fontPx * 0.1, 0.55, 'wax', 0.4);
-  hatchStamp(f, pen, { x: 0, y: 0, w: W, h: H * 0.42 }, [colors.chalk], -0.4, 0.25, fontPx * 0.08, 0.35, 'wax', 0.4);
+  hatchStamp(
+    f,
+    pen,
+    { x: 0, y: H * 0.45, w: W, h: H * 0.6 },
+    [colors.shade],
+    -0.5,
+    0.5,
+    fontPx * 0.1,
+    0.55,
+    'wax',
+    0.4,
+  );
+  hatchStamp(
+    f,
+    pen,
+    { x: 0, y: 0, w: W, h: H * 0.42 },
+    [colors.chalk],
+    -0.4,
+    0.25,
+    fontPx * 0.08,
+    0.35,
+    'wax',
+    0.4,
+  );
   f.globalCompositeOperation = 'source-over';
   applyGrain(f, pen.jit, 0, 0, W, H, kit.tooth * 0.6);
   x.drawImage(fillLayer, 0, 0, W, H, 0, 0, W, H);
@@ -1155,7 +1289,13 @@ export function hashText(s: string): number {
 }
 
 /** Нарисованная мелом рамка для 9-фрагментной border-image (DOM, тема «мел»). */
-export function chalkFrame(seed: number, size: number, inset: number, width: number, color: string): HTMLCanvasElement {
+export function chalkFrame(
+  seed: number,
+  size: number,
+  inset: number,
+  width: number,
+  color: string,
+): HTMLCanvasElement {
   const c = makeCanvas(size, size);
   const x = ctx2d(c);
   const pen = makePen(seed, 0, 0);
@@ -1166,7 +1306,10 @@ export function chalkFrame(seed: number, size: number, inset: number, width: num
     const n = 9;
     for (let i = 0; i <= n; i++) {
       const t = i / n;
-      pts.push({ x: p0.x + (p1.x - p0.x) * t + (pen.rng() - 0.5) * 1.4, y: p0.y + (p1.y - p0.y) * t + (pen.rng() - 0.5) * 1.4 });
+      pts.push({
+        x: p0.x + (p1.x - p0.x) * t + (pen.rng() - 0.5) * 1.4,
+        y: p0.y + (p1.y - p0.y) * t + (pen.rng() - 0.5) * 1.4,
+      });
     }
     return pts;
   };
@@ -1182,7 +1325,15 @@ export function chalkFrame(seed: number, size: number, inset: number, width: num
     const ext = 3;
     const dx = Math.sign(p1.x - p0.x) * ext;
     const dy = Math.sign(p1.y - p0.y) * ext;
-    chalkLine(x, pen, side({ x: p0.x - dx, y: p0.y - dy }, { x: p1.x + dx, y: p1.y + dy }), width, color, false, 0.85);
+    chalkLine(
+      x,
+      pen,
+      side({ x: p0.x - dx, y: p0.y - dy }, { x: p1.x + dx, y: p1.y + dy }),
+      width,
+      color,
+      false,
+      0.85,
+    );
   }
   return c;
 }

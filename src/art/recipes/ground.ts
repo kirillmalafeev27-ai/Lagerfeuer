@@ -42,12 +42,35 @@ export function cornerCenters(): Pt[] {
   ];
 }
 
-export function stone(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy: number, w: number, h: number, chalk = true): void {
+export function stone(
+  x: CanvasRenderingContext2D,
+  pen: Pen,
+  cx: number,
+  cy: number,
+  w: number,
+  h: number,
+  chalk = true,
+): void {
   const p = blob(pen.rng, w, h, { cx, cy, irregularity: 0.2, points: 7 });
   const st = palette.stone;
-  pastelFill(x, pen, p, st.dark, -0.5, 1.2, { stroke: Math.max(2, w * 0.2), under: 0.6, tones: [st.dark, st.base, mix(st.dark, palette.paper, 0.3)], cross: 0.4 });
-  const top = blob(pen.rng, w * 0.62, h * 0.42, { cx: cx - w * 0.08, cy: cy - h * 0.2, irregularity: 0.2 });
-  pastelFill(x, pen, top, st.base, -0.3, 1, { stroke: Math.max(1.8, w * 0.16), under: 0.2, tones: [st.base, st.light], cross: 0.2, pressure: 0.8 });
+  pastelFill(x, pen, p, st.dark, -0.5, 1.2, {
+    stroke: Math.max(2, w * 0.2),
+    under: 0.6,
+    tones: [st.dark, st.base, mix(st.dark, palette.paper, 0.3)],
+    cross: 0.4,
+  });
+  const top = blob(pen.rng, w * 0.62, h * 0.42, {
+    cx: cx - w * 0.08,
+    cy: cy - h * 0.2,
+    irregularity: 0.2,
+  });
+  pastelFill(x, pen, top, st.base, -0.3, 1, {
+    stroke: Math.max(1.8, w * 0.16),
+    under: 0.2,
+    tones: [st.base, st.light],
+    cross: 0.2,
+    pressure: 0.8,
+  });
   if (chalk) {
     const top = p.filter((q) => q.y < cy + h * 0.1).sort((a, b) => a.x - b.x);
     if (top.length > 2) chalkLine(x, pen, top, Math.max(1.1, w * 0.06), palette.chalk, false, 0.45);
@@ -55,7 +78,14 @@ export function stone(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy: num
 }
 
 /** Пучок травы: короткие штрихи вверх веером. */
-export function grassTuft(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy: number, s: number, colors: readonly string[]): void {
+export function grassTuft(
+  x: CanvasRenderingContext2D,
+  pen: Pen,
+  cx: number,
+  cy: number,
+  s: number,
+  colors: readonly string[],
+): void {
   const n = 4 + Math.floor(pen.rng() * 4);
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * 1.6 + (pen.rng() - 0.5) * 0.3;
@@ -64,12 +94,29 @@ export function grassTuft(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy:
     const p0 = { x: cx + (pen.rng() - 0.5) * s * 0.3, y: cy };
     const p2 = { x: p0.x + Math.cos(a) * l, y: p0.y + Math.sin(a) * l };
     const p1 = { x: (p0.x + p2.x) / 2 + bend, y: (p0.y + p2.y) / 2 };
-    pastelStroke(x, pen, quadPts(p0, p1, p2, 5), Math.max(2, s * 0.14), colors[i % colors.length], 0.9, { grain: false, taper: 0.9 });
+    pastelStroke(
+      x,
+      pen,
+      quadPts(p0, p1, p2, 5),
+      Math.max(2, s * 0.14),
+      colors[i % colors.length],
+      0.9,
+      { grain: false, taper: 0.9 },
+    );
   }
 }
 
 /** Лист папоротника: стебель и перья. */
-export function fernFrond(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy: number, len: number, angle: number, color: string, light: string): void {
+export function fernFrond(
+  x: CanvasRenderingContext2D,
+  pen: Pen,
+  cx: number,
+  cy: number,
+  len: number,
+  angle: number,
+  color: string,
+  light: string,
+): void {
   const bend = (pen.rng() - 0.5) * 0.6;
   const pts: Pt[] = [];
   for (let i = 0; i <= 8; i++) {
@@ -99,7 +146,13 @@ export function fernFrond(x: CanvasRenderingContext2D, pen: Pen, cx: number, cy:
 }
 
 /** Вызвать рисование со сдвигами, чтобы элемент у края плитки повторился с другой стороны. */
-function wrap(S: number, x: number, y: number, r: number, draw: (dx: number, dy: number) => void): void {
+function wrap(
+  S: number,
+  x: number,
+  y: number,
+  r: number,
+  draw: (dx: number, dy: number) => void,
+): void {
   for (const dx of [-S, 0, S]) {
     for (const dy of [-S, 0, S]) {
       if (x + dx + r < 0 || x + dx - r > S || y + dy + r < 0 || y + dy - r > S) continue;
@@ -132,23 +185,49 @@ export function drawForestFloor(rc: RC): Tex {
       const w = C * (0.8 + pen.rng() * 0.9);
       const col = cols[i % cols.length];
       const ang = -0.5 + (pen.rng() - 0.5) * 0.7;
-      const shape = blob(pen.rng, w, w * (0.6 + pen.rng() * 0.3), { irregularity: 0.28, points: 9 });
+      const shape = blob(pen.rng, w, w * (0.6 + pen.rng() * 0.3), {
+        irregularity: 0.28,
+        points: 9,
+      });
       wrap(S, cx, cy, w, (dx, dy) => {
-        pastelFill(L.ctx, pen, shape.map((p) => ({ x: p.x + cx + dx, y: p.y + cy + dy })), col, ang, 0.75, {
-          stroke: C * 0.07,
-          under: 0.12,
-          cross: 0.3,
-          pressure: 0.55,
-          grain: false,
-          tones: [col, g.dark],
-          len: 0.35,
-        });
+        pastelFill(
+          L.ctx,
+          pen,
+          shape.map((p) => ({ x: p.x + cx + dx, y: p.y + cy + dy })),
+          col,
+          ang,
+          0.75,
+          {
+            stroke: C * 0.07,
+            under: 0.12,
+            cross: 0.3,
+            pressure: 0.55,
+            grain: false,
+            tones: [col, g.dark],
+            len: 0.35,
+          },
+        );
       });
     }
     L.end(pen.rng, 0.12);
   }
   // Хвоинки процарапаны.
-  sgraffito(x, pen, scratches(pen, [{ x: 0, y: 0 }, { x: S, y: S }], 140, C * 0.08, 0.4, 3), Math.max(1, C * 0.009));
+  sgraffito(
+    x,
+    pen,
+    scratches(
+      pen,
+      [
+        { x: 0, y: 0 },
+        { x: S, y: S },
+      ],
+      140,
+      C * 0.08,
+      0.4,
+      3,
+    ),
+    Math.max(1, C * 0.009),
+  );
   // Светлые хвоинки и мох.
   {
     const L = new PastelLayer(x, S, S);
@@ -161,7 +240,18 @@ export function drawForestFloor(rc: RC): Tex {
       const p0 = { x: cx, y: cy };
       const p1 = { x: cx + Math.cos(a) * l, y: cy + Math.sin(a) * l };
       wrap(S, cx, cy, l, (dx, dy) => {
-        pastelStroke(L.ctx, pen, [{ x: p0.x + dx, y: p0.y + dy }, { x: p1.x + dx, y: p1.y + dy }], Math.max(1.6, C * 0.016), col, 0.7, { grain: false, taper: 0.6 });
+        pastelStroke(
+          L.ctx,
+          pen,
+          [
+            { x: p0.x + dx, y: p0.y + dy },
+            { x: p1.x + dx, y: p1.y + dy },
+          ],
+          Math.max(1.6, C * 0.016),
+          col,
+          0.7,
+          { grain: false, taper: 0.6 },
+        );
       });
     }
     for (let i = 0; i < 9; i++) {
@@ -172,7 +262,16 @@ export function drawForestFloor(rc: RC): Tex {
         if (pen.rng() < 0.5) {
           const k = 3 + Math.floor(pen.rng() * 3);
           for (let j = 0; j < k; j++) {
-            fernFrond(L.ctx, pen, cx + dx, cy + dy, C * (0.2 + pen.rng() * 0.12), -Math.PI / 2 + (j - (k - 1) / 2) * 0.6, f.fern, f.firLight);
+            fernFrond(
+              L.ctx,
+              pen,
+              cx + dx,
+              cy + dy,
+              C * (0.2 + pen.rng() * 0.12),
+              -Math.PI / 2 + (j - (k - 1) / 2) * 0.6,
+              f.fern,
+              f.firLight,
+            );
           }
         } else grassTuft(L.ctx, pen, cx + dx, cy + dy, C * 0.16, [f.fern, g.needles, f.firLight]);
       });
@@ -196,23 +295,62 @@ export function drawClearing(rc: RC): Tex {
   const f = palette.forest;
 
   // Земля поляны: рваный край, растёртый в траву.
-  const outer = blob(pen.rng, C * 3.25, C * 3.15, { cx: X(1), cy: Y(1), irregularity: 0.1, points: 13 });
+  const outer = blob(pen.rng, C * 3.25, C * 3.15, {
+    cx: X(1),
+    cy: Y(1),
+    irregularity: 0.1,
+    points: 13,
+  });
   smudge(x, pen, X(1), Y(1), C * 1.9, g.dark, 0.85);
-  pastelFill(x, pen, outer, g.dark, -0.65, 0.8, { stroke: C * 0.07, under: 0.22, tones: [g.dark, mix(g.dark, palette.paper, 0.45)], len: 0.3, pressure: 0.75 });
+  pastelFill(x, pen, outer, g.dark, -0.65, 0.8, {
+    stroke: C * 0.07,
+    under: 0.22,
+    tones: [g.dark, mix(g.dark, palette.paper, 0.45)],
+    len: 0.3,
+    pressure: 0.75,
+  });
 
   // Кострища: выжженная земля и пепел.
   const pits = pitCenters();
   for (const p of pits) {
-    const sc = blob(pen.rng, C * 1.05, C * 0.66, { cx: X(p.x), cy: Y(p.y) + C * 0.04, irregularity: 0.12 });
-    pastelFill(x, pen, sc, g.dark, 0.3, 0.9, { stroke: C * 0.06, under: 0.5, tones: [g.dark, mix(g.dark, palette.paper, 0.55), palette.smoke], len: 0.4, pressure: 0.7 });
+    const sc = blob(pen.rng, C * 1.05, C * 0.66, {
+      cx: X(p.x),
+      cy: Y(p.y) + C * 0.04,
+      irregularity: 0.12,
+    });
+    pastelFill(x, pen, sc, g.dark, 0.3, 0.9, {
+      stroke: C * 0.06,
+      under: 0.5,
+      tones: [g.dark, mix(g.dark, palette.paper, 0.55), palette.smoke],
+      len: 0.4,
+      pressure: 0.7,
+    });
     smudge(x, pen, X(p.x), Y(p.y) + C * 0.03, C * 0.34, palette.paper, 0.85, 0.6);
-    crumbs(x, pen, { x: X(p.x) - C * 0.28, y: Y(p.y) - C * 0.1, w: C * 0.56, h: C * 0.22 }, palette.smoke, 30, C * 0.014);
+    crumbs(
+      x,
+      pen,
+      { x: X(p.x) - C * 0.28, y: Y(p.y) - C * 0.1, w: C * 0.56, h: C * 0.22 },
+      palette.smoke,
+      30,
+      C * 0.014,
+    );
   }
 
   // Утоптанные углы (поленница и палатка).
   for (const p of cornerCenters()) {
-    const sp = blob(pen.rng, C * 1.15, C * 0.72, { cx: X(p.x), cy: Y(p.y) + C * 0.12, irregularity: 0.22, points: 9 });
-    pastelFill(x, pen, sp, g.dark, -0.4, 0.75, { stroke: C * 0.06, under: 0.2, pressure: 0.7, tones: [g.dark, g.root, g.base], len: 0.35 });
+    const sp = blob(pen.rng, C * 1.15, C * 0.72, {
+      cx: X(p.x),
+      cy: Y(p.y) + C * 0.12,
+      irregularity: 0.22,
+      points: 9,
+    });
+    pastelFill(x, pen, sp, g.dark, -0.4, 0.75, {
+      stroke: C * 0.06,
+      under: 0.2,
+      pressure: 0.7,
+      tones: [g.dark, g.root, g.base],
+      len: 0.35,
+    });
   }
 
   // Клетки — вытоптанные пятна тёплой земли: мягкий край, светлая утоптанная середина,
@@ -231,22 +369,54 @@ export function drawClearing(rc: RC): Tex {
         tones: [g.base, mix(g.base, g.light, 0.35), g.base, mix(g.base, g.dark, 0.2)],
         len: 0.32,
       });
-      const hi = blob(pen.rng, C * 0.56, C * 0.46, { cx: cx + (pen.rng() - 0.5) * C * 0.1, cy: cy + (pen.rng() - 0.5) * C * 0.1, irregularity: 0.22 });
-      pastelFill(x, pen, hi, g.light, -0.95, 0.85, { stroke: C * 0.06, under: 0.08, cross: 0.3, pressure: 0.7, tones: [g.light, mix(g.light, palette.chalk, 0.15)], len: 0.3 });
+      const hi = blob(pen.rng, C * 0.56, C * 0.46, {
+        cx: cx + (pen.rng() - 0.5) * C * 0.1,
+        cy: cy + (pen.rng() - 0.5) * C * 0.1,
+        irregularity: 0.22,
+      });
+      pastelFill(x, pen, hi, g.light, -0.95, 0.85, {
+        stroke: C * 0.06,
+        under: 0.08,
+        cross: 0.3,
+        pressure: 0.7,
+        tones: [g.light, mix(g.light, palette.chalk, 0.15)],
+        len: 0.3,
+      });
       // Следы сапог: пары вдавленных овалов.
       for (let k = 0; k < 2; k++) {
         const fx = cx + (pen.rng() - 0.5) * C * 0.45;
         const fy = cy + (pen.rng() - 0.5) * C * 0.4;
         const a = pen.rng() * Math.PI * 2;
         for (const side of [-1, 1]) {
-          const px = fx + Math.cos(a + Math.PI / 2) * side * C * 0.045 + Math.cos(a) * side * C * 0.03;
-          const py = fy + Math.sin(a + Math.PI / 2) * side * C * 0.045 + Math.sin(a) * side * C * 0.03;
-          const print = blob(pen.rng, C * 0.1, C * 0.055, { cx: px, cy: py, irregularity: 0.12, points: 8, rot: a });
-          pastelFill(x, pen, print, g.dark, a, 1, { stroke: C * 0.03, under: 0.45, cross: 0, pressure: 0.6, len: 0.5 });
+          const px =
+            fx + Math.cos(a + Math.PI / 2) * side * C * 0.045 + Math.cos(a) * side * C * 0.03;
+          const py =
+            fy + Math.sin(a + Math.PI / 2) * side * C * 0.045 + Math.sin(a) * side * C * 0.03;
+          const print = blob(pen.rng, C * 0.1, C * 0.055, {
+            cx: px,
+            cy: py,
+            irregularity: 0.12,
+            points: 8,
+            rot: a,
+          });
+          pastelFill(x, pen, print, g.dark, a, 1, {
+            stroke: C * 0.03,
+            under: 0.45,
+            cross: 0,
+            pressure: 0.6,
+            len: 0.5,
+          });
         }
       }
-      sgraffito(x, pen, scratches(pen, spot, 12, C * 0.08, pen.rng() * 3, 3), Math.max(1.1, C * 0.009));
-      const crack: Pt[] = [{ x: cx + (pen.rng() - 0.5) * C * 0.5, y: cy + (pen.rng() - 0.5) * C * 0.5 }];
+      sgraffito(
+        x,
+        pen,
+        scratches(pen, spot, 12, C * 0.08, pen.rng() * 3, 3),
+        Math.max(1.1, C * 0.009),
+      );
+      const crack: Pt[] = [
+        { x: cx + (pen.rng() - 0.5) * C * 0.5, y: cy + (pen.rng() - 0.5) * C * 0.5 },
+      ];
       let ca = pen.rng() * Math.PI * 2;
       for (let st = 0; st < 4; st++) {
         ca += (pen.rng() - 0.5) * 1.2;
@@ -258,7 +428,15 @@ export function drawClearing(rc: RC): Tex {
       for (let k = 0; k < pebbles; k++) {
         const ang = pen.rng() * Math.PI * 2;
         const rr = C * (0.28 + pen.rng() * 0.1);
-        stone(x, pen, cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr * 0.9, C * (0.07 + pen.rng() * 0.03), C * (0.045 + pen.rng() * 0.02), false);
+        stone(
+          x,
+          pen,
+          cx + Math.cos(ang) * rr,
+          cy + Math.sin(ang) * rr * 0.9,
+          C * (0.07 + pen.rng() * 0.03),
+          C * (0.045 + pen.rng() * 0.02),
+          false,
+        );
       }
     }
   }
@@ -279,9 +457,25 @@ export function drawClearing(rc: RC): Tex {
     return pts;
   };
   const root = (pts: Pt[], w: number) => {
-    pastelStroke(x, pen, pts.map((p) => ({ x: p.x + w * 0.2, y: p.y + w * 0.3 })), w * 1.1, palette.paper, 0.6, { taper: 0.45 });
+    pastelStroke(
+      x,
+      pen,
+      pts.map((p) => ({ x: p.x + w * 0.2, y: p.y + w * 0.3 })),
+      w * 1.1,
+      palette.paper,
+      0.6,
+      { taper: 0.45 },
+    );
     pastelStroke(x, pen, pts, w, g.root, 1, { taper: 0.45 });
-    pastelStroke(x, pen, pts.map((p) => ({ x: p.x - w * 0.12, y: p.y - w * 0.22 })), w * 0.42, mix(g.light, palette.chalk, 0.25), 0.7, { taper: 0.6 });
+    pastelStroke(
+      x,
+      pen,
+      pts.map((p) => ({ x: p.x - w * 0.12, y: p.y - w * 0.22 })),
+      w * 0.42,
+      mix(g.light, palette.chalk, 0.25),
+      0.7,
+      { taper: 0.6 },
+    );
   };
   // Обрывки корней вдоль границ (не сплошной крест — это была бы сетка).
   root(wav(X(1.03), Y(-0.12), X(0.97), Y(0.74), C * 0.045), C * 0.07);
@@ -297,7 +491,14 @@ export function drawClearing(rc: RC): Tex {
     const along = (x0: number, y0: number, x1: number, y1: number, n: number) => {
       for (let i = 0; i < n; i++) {
         const t = (i + 0.5) / n + (pen.rng() - 0.5) * 0.05;
-        grassTuft(L.ctx, pen, x0 + (x1 - x0) * t + (pen.rng() - 0.5) * C * 0.06, y0 + (y1 - y0) * t + (pen.rng() - 0.5) * C * 0.06, C * (0.12 + pen.rng() * 0.06), [f.fern, f.firLight, g.needles]);
+        grassTuft(
+          L.ctx,
+          pen,
+          x0 + (x1 - x0) * t + (pen.rng() - 0.5) * C * 0.06,
+          y0 + (y1 - y0) * t + (pen.rng() - 0.5) * C * 0.06,
+          C * (0.12 + pen.rng() * 0.06),
+          [f.fern, f.firLight, g.needles],
+        );
       }
     };
     along(X(1), Y(0.03), X(1), Y(1.97), 8);
@@ -309,17 +510,40 @@ export function drawClearing(rc: RC): Tex {
       const px = X(1) + Math.cos(a) * r;
       const py = Y(1) + Math.sin(a) * r;
       if (pen.rng() < 0.3) {
-        for (let j = 0; j < 3; j++) fernFrond(L.ctx, pen, px, py, C * (0.18 + pen.rng() * 0.1), a + (j - 1) * 0.5 - 0.3, f.fern, f.firLight);
-      } else grassTuft(L.ctx, pen, px, py, C * (0.13 + pen.rng() * 0.07), [f.fern, g.needles, f.firLight]);
+        for (let j = 0; j < 3; j++)
+          fernFrond(
+            L.ctx,
+            pen,
+            px,
+            py,
+            C * (0.18 + pen.rng() * 0.1),
+            a + (j - 1) * 0.5 - 0.3,
+            f.fern,
+            f.firLight,
+          );
+      } else
+        grassTuft(L.ctx, pen, px, py, C * (0.13 + pen.rng() * 0.07), [
+          f.fern,
+          g.needles,
+          f.firLight,
+        ]);
     }
     L.end(pen.rng, 0.08);
   }
 
   // Кольца камней вокруг кострищ.
   for (const p of pits) {
-    const ring = ellipsePts(X(p.x), Y(p.y), C * look.pit.ring * 0.5, C * look.pit.ring * 0.28, 8, pen.rng());
+    const ring = ellipsePts(
+      X(p.x),
+      Y(p.y),
+      C * look.pit.ring * 0.5,
+      C * look.pit.ring * 0.28,
+      8,
+      pen.rng(),
+    );
     ring.sort((a, b) => a.y - b.y);
-    for (const s of ring) stone(x, pen, s.x, s.y, C * (0.17 + pen.rng() * 0.05), C * (0.11 + pen.rng() * 0.03));
+    for (const s of ring)
+      stone(x, pen, s.x, s.y, C * (0.17 + pen.rng() * 0.05), C * (0.11 + pen.rng() * 0.03));
   }
 
   return tex('bg', c, pad / span, pad / span);

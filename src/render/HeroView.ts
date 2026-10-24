@@ -69,15 +69,27 @@ export class HeroView {
     this.y = p.y;
     this.shadow = artImage(scene, p.x, p.y, K.heroShadow).setDepth(DEPTH.shadows).setAlpha(0.8);
     this.root = scene.add.container(p.x, p.y);
-    this.armBack = artImage(scene, -0.1 * H, -HERO_JOINTS.shoulder * H, K.heroArm, 0).setTint(0xb8c4c4);
+    this.armBack = artImage(scene, -0.1 * H, -HERO_JOINTS.shoulder * H, K.heroArm, 0).setTint(
+      0xb8c4c4,
+    );
     this.legs = artImage(scene, 0, -HERO_JOINTS.hip * H, K.heroLegs, 0);
     this.body = artImage(scene, 0, -HERO_JOINTS.hip * H + 0.035 * H, K.heroBody, 0);
     this.head = artImage(scene, 0.01 * H, -HERO_JOINTS.neck * H + 0.025 * H, K.heroHead, 0);
     this.pompom = artImage(scene, -0.005 * H, -HERO_JOINTS.hatTop * H + 0.035 * H, K.heroPompom);
     this.carry = artImage(scene, 0.07 * H, -0.47 * H, K.heroCarryBirch2, 0).setVisible(false);
     this.armFront = artImage(scene, 0.08 * H, -HERO_JOINTS.shoulder * H, K.heroArm, 0);
-    this.root.add([this.armBack, this.legs, this.body, this.carry, this.head, this.pompom, this.armFront]);
-    this.star = artImage(scene, p.x, p.y - 1.15 * H, K.star).setDepth(DEPTH.overHints).setAlpha(0);
+    this.root.add([
+      this.armBack,
+      this.legs,
+      this.body,
+      this.carry,
+      this.head,
+      this.pompom,
+      this.armFront,
+    ]);
+    this.star = artImage(scene, p.x, p.y - 1.15 * H, K.star)
+      .setDepth(DEPTH.overHints)
+      .setAlpha(0);
     this.breath = scene.add.particles(0, 0, K.breath, {
       lifespan: 900,
       speedX: { min: 10, max: 22 },
@@ -206,7 +218,14 @@ export class HeroView {
     }
     if (this.squash > 0) this.squash = Math.max(0, this.squash - dtMs / 160);
     this.actionT += dtMs;
-    const actDur = this.action === 'throw' ? timing.throwMs : this.action === 'pickup' ? timing.pickupMs : this.action === 'clap' ? 380 : 400;
+    const actDur =
+      this.action === 'throw'
+        ? timing.throwMs
+        : this.action === 'pickup'
+          ? timing.pickupMs
+          : this.action === 'clap'
+            ? 380
+            : 400;
     if (this.action !== 'none' && this.actionT > actDur) this.action = 'none';
     const at = this.action === 'none' ? 0 : Math.min(1, this.actionT / actDur);
 
@@ -217,14 +236,21 @@ export class HeroView {
     this.root.setPosition(this.x, this.y - lift - stomp);
     this.root.setScale(this.facing * (1 + sq * 0.6), 1 - sq + breathe);
     this.root.setVisible(!this.hidden);
-    this.shadow.setPosition(this.x, this.y + 2).setVisible(!this.hidden).setScale(artScale() * (1 - lift / (0.6 * CELL)));
+    this.shadow
+      .setPosition(this.x, this.y + 2)
+      .setVisible(!this.hidden)
+      .setScale(artScale() * (1 - lift / (0.6 * CELL)));
 
     const v = this.boil.variant();
     setArt(this.legs, hopping ? K.heroLegsHop : K.heroLegs, v);
     setArt(this.body, K.heroBody, this.boil.variant(1));
     const yawning = this.yawnT > 0;
     if (this.yawnT > 0) this.yawnT = Math.max(0, this.yawnT - dtMs / 1400);
-    setArt(this.head, yawning && this.yawnT > 0.15 ? K.heroHeadYawn : K.heroHead, this.boil.variant(2));
+    setArt(
+      this.head,
+      yawning && this.yawnT > 0.15 ? K.heroHeadYawn : K.heroHead,
+      this.boil.variant(2),
+    );
     setArt(this.armBack, K.heroArm, this.boil.variant(1));
     setArt(this.armFront, K.heroArm, this.boil.variant(2));
 
@@ -267,7 +293,12 @@ export class HeroView {
     // Дрова в руках: две берёзы под мышкой или дуб на плече.
     if (this.carryKind === null) this.carry.setVisible(false);
     else {
-      const key = this.carryKind === 'oak' ? K.heroCarryOak : this.carryCount >= 2 ? K.heroCarryBirch2 : K.heroCarryBirch1;
+      const key =
+        this.carryKind === 'oak'
+          ? K.heroCarryOak
+          : this.carryCount >= 2
+            ? K.heroCarryBirch2
+            : K.heroCarryBirch1;
       setArt(this.carry, key, v);
       this.carry.setVisible(true);
       if (this.carryKind === 'oak') this.carry.setPosition(-0.02 * H, -0.74 * H).setRotation(-0.12);
@@ -279,13 +310,17 @@ export class HeroView {
     // Помпон: дыбом от тревоги, подскакивает в прыжке.
     const pomUp = this.pose === 'alarm' ? 1.45 : 1;
     this.pompom.setScale(artScale(), artScale() * pomUp);
-    this.pompom.y = -HERO_JOINTS.hatTop * H + 0.035 * H - (pomUp - 1) * 0.05 * H - (hopping ? 0.02 * H : 0);
+    this.pompom.y =
+      -HERO_JOINTS.hatTop * H + 0.035 * H - (pomUp - 1) * 0.05 * H - (hopping ? 0.02 * H : 0);
 
     // Меловая звёздочка над героем за верный ответ.
     if (this.starT > 0) {
       this.starT = Math.max(0, this.starT - dtMs / 650);
       const t = 1 - this.starT;
-      this.star.setPosition(this.x, this.y - 1.12 * H - t * 0.25 * CELL).setAlpha(this.starT).setScale(artScale() * (0.7 + 0.5 * Math.sin(Math.min(1, t * 2) * Math.PI * 0.5)));
+      this.star
+        .setPosition(this.x, this.y - 1.12 * H - t * 0.25 * CELL)
+        .setAlpha(this.starT)
+        .setScale(artScale() * (0.7 + 0.5 * Math.sin(Math.min(1, t * 2) * Math.PI * 0.5)));
     } else this.star.setAlpha(0);
 
     // Пар изо рта к утру.

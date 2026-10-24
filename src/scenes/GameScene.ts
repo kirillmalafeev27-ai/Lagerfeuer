@@ -25,7 +25,7 @@ import { DEPTH } from '../render/depth.ts';
 import { FireView, type ViewRect } from '../render/FireView.ts';
 import { HeroView, cellCenter } from '../render/HeroView.ts';
 import { HintsView } from '../render/HintsView.ts';
-import { Juice, type WordTone } from '../render/juice.ts';
+import { Juice, WORD_TONE, type WordTone } from '../render/juice.ts';
 import { SkyView } from '../render/SkyView.ts';
 import { WorldView, pitWorld } from '../render/WorldView.ts';
 
@@ -47,6 +47,8 @@ export interface SceneHost {
   hintsEnabled: boolean;
   wordsLang: 'de' | 'ru';
   darkFallback: boolean;
+  /** Ускорение времени раунда (только dev и e2e): столько шагов контроллера за кадр. */
+  speed?: number;
   onWorldTap(t: WorldTarget): void;
   onRoundEvents(events: GameEvent[], state: GameState): void;
   onFinaleDone(): void;
@@ -153,7 +155,10 @@ export class GameScene extends Phaser.Scene {
   worldToCss(x: number, y: number): { x: number; y: number } {
     const cam = this.cameras.main;
     const dpr = this.host.dpr;
-    return { x: ((x - cam.worldView.x) * cam.zoom) / dpr, y: ((y - cam.worldView.y) * cam.zoom) / dpr };
+    return {
+      x: ((x - cam.worldView.x) * cam.zoom) / dpr,
+      y: ((y - cam.worldView.y) * cam.zoom) / dpr,
+    };
   }
 
   heroHeadCss(): { x: number; y: number } | null {
@@ -187,7 +192,8 @@ export class GameScene extends Phaser.Scene {
     this.yawned = false;
     this.attractPlan = null;
     // Остальные объекты героя (тень, звёздочка, пар) живут в сцене: удалим всё лишнее по тегу.
-    for (const o of this.children.list.slice()) if ((o as Phaser.GameObjects.GameObject).getData?.('round')) o.destroy();
+    for (const o of this.children.list.slice())
+      if ((o as Phaser.GameObjects.GameObject).getData?.('round')) o.destroy();
   }
 
   /** Начать раунд: построить виды под раскладку уровня. */
@@ -199,7 +205,9 @@ export class GameScene extends Phaser.Scene {
     this.world.build({ seed: s.seed, shelters: s.fires.map((f) => f.shelter) });
     this.camp = new CampView(this, this.boil, s.pile, s.tent, s.level.oak);
     this.camp.selected = s.selectedWood;
-    this.fires = SIDES.map((side) => new FireView(this, side, s.fires[side].shelter, this.boil, s.fires[side].fuel));
+    this.fires = SIDES.map(
+      (side) => new FireView(this, side, s.fires[side].shelter, this.boil, s.fires[side].fuel),
+    );
     this.hero = new HeroView(this, this.boil, s.hero.cell);
     this.hero.setCarry(s.hero.hands.kind, s.hero.hands.count);
     for (const o of this.children.list) if (!before.has(o)) o.setData('round', true);
@@ -279,7 +287,7 @@ export class GameScene extends Phaser.Scene {
 
   // ── События раунда → картинка и слова ─────────────────────────
 
-  private word(w: SfxWord, x: number, y: number, tone: WordTone = 'caption', scale = 1): void {
+  private word(w: SfxWord, x: number, y: number, tone: WordTone = WORD_TONE[w], scale = 1): void {
     const dict = this.host.wordsLang === 'ru' ? sfxRu : sfxDe;
     this.juice.word(dict[w], x, y, tone, scale);
   }
@@ -307,7 +315,9 @@ export class GameScene extends Phaser.Scene {
             this.word('fauch', pit.x, pit.y - 1.0 * CELL, 'caption');
             if (e.relit) {
               fire.wolfJumpBack();
-              this.time.delayedCall(260, () => this.word('jaul', pit.x + 0.5 * CELL, pit.y - 1.3 * CELL, 'danger', 0.9));
+              this.time.delayedCall(260, () =>
+                this.word('jaul', pit.x + 0.5 * CELL, pit.y - 1.3 * CELL, 'danger', 0.9),
+              );
             }
           } else this.word('plumps', pit.x, pit.y - 0.8 * CELL, 'chalk');
           break;
@@ -322,10 +332,23 @@ export class GameScene extends Phaser.Scene {
         case 'FIRE_LOW': {
           const pit = pitWorld(e.fire);
           const o = OUTWARD_OF(e.fire);
-          if (e.level === 1) this.word('knurr', pit.x + o.x * 1.1 * CELL, pit.y + o.y * 0.9 * CELL - 0.3 * CELL, 'danger', 0.85);
+          if (e.level === 1)
+            this.word(
+              'knurr',
+              pit.x + o.x * 1.1 * CELL,
+              pit.y + o.y * 0.9 * CELL - 0.3 * CELL,
+              'danger',
+              0.85,
+            );
           else if (this.timeMs - this.lastHowl > timing.howlCooldownMs) {
             this.lastHowl = this.timeMs;
-            this.word('auuuh', pit.x + o.x * 1.1 * CELL, pit.y + o.y * 0.9 * CELL - 0.3 * CELL, 'danger', 0.95);
+            this.word(
+              'auuuh',
+              pit.x + o.x * 1.1 * CELL,
+              pit.y + o.y * 0.9 * CELL - 0.3 * CELL,
+              'danger',
+              0.95,
+            );
           }
           break;
         }
@@ -333,7 +356,8 @@ export class GameScene extends Phaser.Scene {
           const pit = pitWorld(e.fire);
           this.word('zisch', pit.x, pit.y - 0.7 * CELL, 'chalk');
           this.time.delayedCall(700, () => {
-            if (this.ctl?.state.fires[e.fire].embers !== null) this.word('glimm', pit.x, pit.y - 0.6 * CELL, 'danger', 0.85);
+            if (this.ctl?.state.fires[e.fire].embers !== null)
+              this.word('glimm', pit.x, pit.y - 0.6 * CELL, 'danger', 0.85);
           });
           this.juice.shake(this.cameras.main, timing.shakeSmallPx * this.host.dpr);
           break;
@@ -347,7 +371,13 @@ export class GameScene extends Phaser.Scene {
         case 'WIND_WARN': {
           const pit = pitWorld(e.side);
           const o = OUTWARD_OF(e.side);
-          this.word('saus', pit.x + o.x * 1.2 * CELL, pit.y + o.y * 1.0 * CELL - 0.4 * CELL, 'wind', 0.9);
+          this.word(
+            'saus',
+            pit.x + o.x * 1.2 * CELL,
+            pit.y + o.y * 1.0 * CELL - 0.4 * CELL,
+            'wind',
+            0.9,
+          );
           break;
         }
         case 'WIND_START': {
@@ -356,12 +386,20 @@ export class GameScene extends Phaser.Scene {
           break;
         }
         case 'DAWN_START': {
-          this.word('tschilp', this.view.x + this.view.w * 0.3, this.sky.bottom - 0.1 * CELL, 'caption', 0.9);
+          this.word(
+            'tschilp',
+            this.view.x + this.view.w * 0.3,
+            this.sky.bottom - 0.1 * CELL,
+            'caption',
+            0.9,
+          );
           if (!this.yawned) {
             this.yawned = true;
             hero.yawn();
             const hp = hero.headPosition();
-            this.time.delayedCall(500, () => this.word('gaehn', hp.x, hp.y - 0.25 * CELL, 'chalk', 0.8));
+            this.time.delayedCall(500, () =>
+              this.word('gaehn', hp.x, hp.y - 0.25 * CELL, 'chalk', 0.8),
+            );
           }
           break;
         }
@@ -424,7 +462,8 @@ export class GameScene extends Phaser.Scene {
     this.word('kikeriki', this.view.x + this.view.w * 0.7, this.sky.bottom + 0.1 * CELL, 'caption');
     this.time.delayedCall(900, () => {
       const hp = this.hero?.headPosition();
-      if (hp) this.word(anyEmbers ? 'knapp' : 'gutenMorgen', hp.x, hp.y - 0.25 * CELL, 'caption', 1.05);
+      if (hp)
+        this.word(anyEmbers ? 'knapp' : 'gutenMorgen', hp.x, hp.y - 0.25 * CELL, 'caption', 1.05);
     });
   }
 
@@ -438,7 +477,10 @@ export class GameScene extends Phaser.Scene {
       const x = f.from.x + (f.to.x - f.from.x) * p;
       const y = f.from.y + (f.to.y - f.from.y) * p;
       setArt(f.wolf, K.wolfRun(Math.floor(f.t / 110) % 2), this.boil.variant());
-      f.wolf.setPosition(x, y - (this.host.reducedMotion ? 0 : Math.abs(Math.sin(f.t / 70)) * 0.06 * CELL));
+      f.wolf.setPosition(
+        x,
+        y - (this.host.reducedMotion ? 0 : Math.abs(Math.sin(f.t / 70)) * 0.06 * CELL),
+      );
       if (p >= 1 && f.stage === 0) {
         f.stage = 1;
         this.word('haps', x, y - 0.9 * CELL, 'danger', 1.15);
@@ -450,7 +492,10 @@ export class GameScene extends Phaser.Scene {
         const ax = f.to.x + (f.to.x > f.from.x ? 1 : -1) * away * 2.2 * CELL;
         f.wolf.setPosition(ax, f.to.y + away * 0.6 * CELL);
         f.wolf.setFlipX(f.to.x <= f.from.x);
-        this.camp.sausages.setPosition(ax + (f.to.x > f.from.x ? 0.25 : -0.25) * CELL, f.to.y - 0.35 * CELL + away * 0.6 * CELL);
+        this.camp.sausages.setPosition(
+          ax + (f.to.x > f.from.x ? 0.25 : -0.25) * CELL,
+          f.to.y - 0.35 * CELL + away * 0.6 * CELL,
+        );
         f.wolf.setAlpha(1 - Math.max(0, away - 0.6) / 0.4);
         this.camp.sausages.setAlpha(1 - Math.max(0, away - 0.6) / 0.4);
       }
@@ -469,7 +514,7 @@ export class GameScene extends Phaser.Scene {
     this.juice.reducedMotion = this.host.reducedMotion;
     const ctl = this.ctl;
     if (ctl) {
-      if (this.mode === 'play') ctl.tick(delta);
+      if (this.mode === 'play') for (let i = 0; i < (this.host.speed ?? 1); i++) ctl.tick(delta);
       if (this.mode === 'attract') this.updateAttract(dt);
     }
     this.updateFinale(dt);
@@ -490,6 +535,8 @@ export class GameScene extends Phaser.Scene {
       const ev: GameEvent[] = [];
       // Бот задаёт намерение на копии и мы повторяем его действием через контроллер.
       const copy = cloneState(st);
+      // На копии готовое действие не исполняется, иначе оно сразу «съест» намерение бота.
+      copy.hero.ready = false;
       this.attractPlan(copy, ev);
       if (copy.selectedWood !== st.selectedWood) ctl.selectWood(copy.selectedWood);
       const it = copy.hero.intent;
@@ -509,13 +556,18 @@ export class GameScene extends Phaser.Scene {
     const t = this.timeMs;
     if (!ctl || !this.hero || !this.camp) {
       this.sky.update(t, 0, 0, 0, rm);
-      this.dark.draw(light.nightAlpha, [], { top: this.sky.top, bottom: this.sky.bottom + 0.2 * CELL, strength: 0.5 });
+      this.dark.draw(light.nightAlpha, [], {
+        top: this.sky.top,
+        bottom: this.sky.bottom + 0.2 * CELL,
+        strength: 0.5,
+      });
       this.juice.update(dt);
       return;
     }
     const s = ctl.state;
     const share = Math.min(1, s.t / s.nightA);
-    const dawnK = share < 1 - balance.dawnShare ? 0 : (share - (1 - balance.dawnShare)) / balance.dawnShare;
+    const dawnK =
+      share < 1 - balance.dawnShare ? 0 : (share - (1 - balance.dawnShare)) / balance.dawnShare;
     const flags = hintFlags(s.level.hints);
     const hintsOn = this.host.hintsEnabled && this.mode !== 'attract';
     const target = s.hero.intent && s.hero.intent.kind === 'feed' ? s.hero.intent.fire : null;
@@ -526,7 +578,8 @@ export class GameScene extends Phaser.Scene {
     for (const fv of this.fires) {
       const f = s.fires[fv.side];
       let ring: RingLevel | null = null;
-      if (hintsOn && (flags.ringsAll || (flags.ringTarget && target === fv.side))) ring = urgency(s, fv.side).level;
+      if (hintsOn && (flags.ringsAll || (flags.ringTarget && target === fv.side)))
+        ring = urgency(s, fv.side).level;
       const ghost = hintsOn && flags.oak && oakHint(s, fv.side);
       fv.update(dt, t, {
         fire: f,
@@ -548,7 +601,8 @@ export class GameScene extends Phaser.Scene {
         hero.setPose('alarm');
         hero.face(pitWorld(ember.side).x);
       } else if (s.hero.ready && this.mode === 'play') hero.setPose('ready');
-      else if (warned && activeGust(s, warned.side) === null && s.gusts.some((g) => g.phase === 2)) hero.setPose('wind');
+      else if (warned && activeGust(s, warned.side) === null && s.gusts.some((g) => g.phase === 2))
+        hero.setPose('wind');
       else hero.setPose(s.gusts.some((g) => g.phase === 2) ? 'wind' : 'idle');
       const it = s.hero.intent;
       if (it && !ember) {
@@ -583,26 +637,61 @@ export class GameScene extends Phaser.Scene {
       }
       this.hints.setRoute(pts);
     } else this.hints.setRoute([]);
-    this.hints.setX2(s.hero.x2 && target !== null ? { x: pitWorld(target).x + 0.45 * CELL, y: pitWorld(target).y - 0.95 * CELL } : null);
+    this.hints.setX2(
+      s.hero.x2 && target !== null
+        ? { x: pitWorld(target).x + 0.45 * CELL, y: pitWorld(target).y - 0.95 * CELL }
+        : null,
+    );
     this.hints.update(t, rm);
 
     // Небо и сценарий ночи (8.4).
     this.sky.update(t, share, Math.max(dawnK, this.sunrise), this.sunrise, rm);
-    const moon = share < 1 - balance.dawnShare ? light.moonStrength : Math.max(0, light.moonStrength * (1 - (share - 0.8) / 0.05));
+    const moon =
+      share < 1 - balance.dawnShare
+        ? light.moonStrength
+        : Math.max(0, light.moonStrength * (1 - (share - 0.8) / 0.05));
     const nightAlpha = light.nightAlpha + (light.dawnEndAlpha - light.nightAlpha) * dawnK;
     const fill = nightAlpha * (1 - moon) * (1 - this.sunrise);
     const stamps: LightStamp[] = [];
     const lp = { x: CELL, y: CELL * 1.02 };
-    stamps.push({ x: lp.x, y: lp.y, r: 1.75 + (rm ? 0 : Math.sin(t / 900) * 0.02), strength: light.lanternStrength, brush: K.brushSoft });
+    stamps.push({
+      x: lp.x,
+      y: lp.y,
+      r: 1.75 + (rm ? 0 : Math.sin(t / 900) * 0.02),
+      strength: light.lanternStrength,
+      brush: K.brushSoft,
+    });
     const lantern = this.camp.lanternPos();
-    stamps.push({ x: lantern.x, y: lantern.y + 0.4 * CELL, r: 0.75, strength: 0.55, brush: K.brushSoft });
+    stamps.push({
+      x: lantern.x,
+      y: lantern.y + 0.4 * CELL,
+      r: 0.75,
+      strength: 0.55,
+      brush: K.brushSoft,
+    });
     // Фонарь достаёт и до поленницы: она — часть лагеря, её нужно видеть всегда.
-    stamps.push({ x: this.camp.pilePos.x, y: this.camp.pilePos.y - 0.25 * CELL, r: 0.95, strength: 0.5, brush: K.brushSoft });
+    stamps.push({
+      x: this.camp.pilePos.x,
+      y: this.camp.pilePos.y - 0.25 * CELL,
+      r: 0.95,
+      strength: 0.5,
+      brush: K.brushSoft,
+    });
     for (const fv of this.fires) {
       const src = fv.lightSource();
-      stamps.push({ x: src.x, y: src.y, r: src.r, strength: src.strength, brush: K.brush((this.boil.variant(fv.side) + fv.side) % 3) });
+      stamps.push({
+        x: src.x,
+        y: src.y,
+        r: src.r,
+        strength: src.strength,
+        brush: K.brush((this.boil.variant(fv.side) + fv.side) % 3),
+      });
     }
-    this.dark.draw(fill, stamps, { top: this.sky.top, bottom: this.sky.bottom + 0.15 * CELL, strength: 0.5 * (1 - dawnK) });
+    this.dark.draw(fill, stamps, {
+      top: this.sky.top,
+      bottom: this.sky.bottom + 0.15 * CELL,
+      strength: 0.5 * (1 - dawnK),
+    });
     this.juice.update(dt);
   }
 
@@ -635,4 +724,3 @@ function nearestFire(cell: Cell): Side {
   // Ближайший — с которым клетка граничит по строке (север/юг).
   return (cellRow(cell) === 0 ? 0 : 2) as Side;
 }
-

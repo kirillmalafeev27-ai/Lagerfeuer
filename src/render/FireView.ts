@@ -150,7 +150,13 @@ export class FireView {
   private wolfShown = 0;
   private wolfJump = 0;
 
-  constructor(scene: Phaser.Scene, side: Side, shelter: Shelter, boil: BoilClock, startFuel: number) {
+  constructor(
+    scene: Phaser.Scene,
+    side: Side,
+    shelter: Shelter,
+    boil: BoilClock,
+    startFuel: number,
+  ) {
     this.side = side;
     this.shelter = shelter;
     this.boil = boil;
@@ -161,16 +167,30 @@ export class FireView {
     const s = artScale();
     const baseDepth = depthByY(y);
 
-    this.glow = artImage(scene, x, y - 0.18 * CELL, K.glow).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow);
-    this.emberGlow = artImage(scene, x, y, K.glowEmber).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setVisible(false);
+    this.glow = artImage(scene, x, y - 0.18 * CELL, K.glow)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.glow);
+    this.emberGlow = artImage(scene, x, y, K.glowEmber)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.glow)
+      .setVisible(false);
 
     // Поленья: заднее и боковые — за пламенем, переднее (третье) — перед ним.
-    for (let i = 0; i < 4; i++) this.logs.push(artImage(scene, x, y, K.logBirch, 0).setDepth(baseDepth + (i === 2 ? 0.2 : 0.01 * i)).setVisible(false));
-    this.embers = artImage(scene, x, y + 0.02 * CELL, K.embers, 0).setDepth(baseDepth + 0.05).setVisible(false);
+    for (let i = 0; i < 4; i++)
+      this.logs.push(
+        artImage(scene, x, y, K.logBirch, 0)
+          .setDepth(baseDepth + (i === 2 ? 0.2 : 0.01 * i))
+          .setVisible(false),
+      );
+    this.embers = artImage(scene, x, y + 0.02 * CELL, K.embers, 0)
+      .setDepth(baseDepth + 0.05)
+      .setVisible(false);
 
     // Языки пламени: веер из трёх слоёв, ближе к середине — выше по глубине.
     TONGUES.forEach((d, i) => {
-      const img = artImage(scene, x + d.off * CELL, y, K.tongue(d.layer, d.shape), 0).setFlipX(!!d.flip);
+      const img = artImage(scene, x + d.off * CELL, y, K.tongue(d.layer, d.shape), 0).setFlipX(
+        !!d.flip,
+      );
       img.setDepth(baseDepth + 0.1 + d.layer * 0.01 + i * 0.0005);
       this.tongues.push({
         ...d,
@@ -183,7 +203,9 @@ export class FireView {
         flick: 0,
       });
     });
-    this.bloom = artImage(scene, x, y, K.bloom).setBlendMode(Phaser.BlendModes.ADD).setDepth(baseDepth + 0.15);
+    this.bloom = artImage(scene, x, y, K.bloom)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(baseDepth + 0.15);
 
     this.sparks = scene.add.particles(x, y - 0.3 * CELL, K.spark(1), {
       lifespan: { min: 700, max: 1300 },
@@ -238,15 +260,35 @@ export class FireView {
     this.gauge.add([this.gaugeHatch, this.gaugeStrip, this.gaugeGhost]);
     void gs;
 
-    this.ring = artImage(scene, x, y + 0.04 * CELL, K.ringCalm).setDepth(DEPTH.overHints).setVisible(false);
-    this.windIcon = artImage(scene, x + o.x * 0.55 * CELL, y - 1.25 * CELL, K.windIcon).setDepth(DEPTH.overHints).setVisible(false);
+    this.ring = artImage(scene, x, y + 0.04 * CELL, K.ringCalm)
+      .setDepth(DEPTH.overHints)
+      .setVisible(false);
+    this.windIcon = artImage(scene, x + o.x * 0.55 * CELL, y - 1.25 * CELL, K.windIcon)
+      .setDepth(DEPTH.overHints)
+      .setVisible(false);
     if (side === 3) this.windIcon.setFlipX(true);
 
-    this.wolf = artImage(scene, x, y, K.wolfStand, 0).setDepth(DEPTH.over - 1).setVisible(false);
+    this.wolf = artImage(scene, x, y, K.wolfStand, 0)
+      .setDepth(DEPTH.over - 1)
+      .setVisible(false);
     for (let i = 0; i < 3; i++) {
-      const glow = artImage(scene, x, y, K.eyeGlow).setDepth(DEPTH.over).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-      const img = artImage(scene, x, y, K.eyes).setDepth(DEPTH.over + 1).setAlpha(0);
-      this.eyes.push({ img, glow, phase: Math.random() * Math.PI * 2, blinkAt: 1000 + Math.random() * 4000, blinkUntil: 0, alpha: 0, x, y });
+      const glow = artImage(scene, x, y, K.eyeGlow)
+        .setDepth(DEPTH.over)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0);
+      const img = artImage(scene, x, y, K.eyes)
+        .setDepth(DEPTH.over + 1)
+        .setAlpha(0);
+      this.eyes.push({
+        img,
+        glow,
+        phase: Math.random() * Math.PI * 2,
+        blinkAt: 1000 + Math.random() * 4000,
+        blinkUntil: 0,
+        alpha: 0,
+        x,
+        y,
+      });
     }
   }
 
@@ -269,7 +311,8 @@ export class FireView {
           const cx = Math.min(view.x + view.w - m, Math.max(view.x + m, px));
           // Над лесом — только в нижней части полосы неба, среди силуэтов елей.
           const cy = Math.min(view.y + view.h - m, Math.max(skyTop + skyH * 0.62, view.y + m, py));
-          const inClearing = cx > clearing.x0 && cx < clearing.x1 && cy > clearing.y0 && cy < clearing.y1;
+          const inClearing =
+            cx > clearing.x0 && cx < clearing.x1 && cy > clearing.y0 && cy < clearing.y1;
           const tooClose = spots.some((s) => Math.hypot(s.x - cx, s.y - cy) < 0.45 * CELL);
           const nearPit = Math.hypot(cx - this.pit.x, cy - this.pit.y) < 0.85 * CELL;
           if (!inClearing && !tooClose && !nearPit) {
@@ -286,7 +329,10 @@ export class FireView {
     const dx = w0.x - this.pit.x;
     const dy = w0.y - this.pit.y;
     const l = Math.hypot(dx, dy) || 1;
-    this.wolfSpot = { x: this.pit.x + (dx / l) * 1.08 * CELL, y: this.pit.y + (dy / l) * 1.0 * CELL + 0.2 * CELL };
+    this.wolfSpot = {
+      x: this.pit.x + (dx / l) * 1.08 * CELL,
+      y: this.pit.y + (dy / l) * 1.0 * CELL + 0.2 * CELL,
+    };
   }
 
   /** Подбросили берёзу, разгорелся дуб или костёр зажёгся с углей. */
@@ -321,7 +367,8 @@ export class FireView {
     const target = embers ? light.emberRadius : fireLightRadius(fuel);
     const k = 1 - Math.exp(-dtMs / (timing.lightTweenMs / 3));
     this.lightR += (target - this.lightR) * k;
-    if (this.flash > 0) this.flash = Math.max(0, this.flash - (light.flashExtraRadius * dtMs) / timing.flashMs);
+    if (this.flash > 0)
+      this.flash = Math.max(0, this.flash - (light.flashExtraRadius * dtMs) / timing.flashMs);
     if (this.boil.frame !== this.lastBoil) {
       this.lastBoil = this.boil.frame;
       this.flickerJit = 1 + (Math.random() * 2 - 1) * light.fireFlickerBoil;
@@ -333,7 +380,12 @@ export class FireView {
 
     // Поленья шалашиком.
     const items: Array<{ key: string; amount: number }> = [];
-    if (!embers) for (const l of f.logs) items.push({ key: l.kind === 'birch' ? K.logBirch : K.logOak, amount: l.kind === 'birch' ? l.amount : l.amount / 2 });
+    if (!embers)
+      for (const l of f.logs)
+        items.push({
+          key: l.kind === 'birch' ? K.logBirch : K.logOak,
+          amount: l.kind === 'birch' ? l.amount : l.amount / 2,
+        });
     if (f.catching !== null) items.push({ key: K.logOakCatching, amount: 1 });
     const shown = items.slice(-4);
     const slots = [
@@ -351,31 +403,49 @@ export class FireView {
       }
       const sl = slots[i];
       setArt(img, it.key, this.boil.variant(this.boilOff + i));
-      img.setVisible(true).setPosition(this.pit.x + sl.dx * C, this.pit.y + sl.dy * C).setRotation(sl.rot).setFlipX(sl.flip);
+      img
+        .setVisible(true)
+        .setPosition(this.pit.x + sl.dx * C, this.pit.y + sl.dy * C)
+        .setRotation(sl.rot)
+        .setFlipX(sl.flip);
       const sc = artScale() * (0.55 + 0.45 * Math.min(1, it.amount));
       img.setScale(sc, artScale());
     }
 
     // Языки пламени: веер растёт с топливом, языки колышутся и вспыхивают.
     const fs = embers ? 0 : flameScale(fuel);
-    const lean = fr.gust ? (this.side === 1 ? -light.windLean : this.side === 3 ? light.windLean : 0) : 0;
+    const lean = fr.gust
+      ? this.side === 1
+        ? -light.windLean
+        : this.side === 3
+          ? light.windLean
+          : 0
+      : 0;
     const gustSquash = fr.gust && (this.side === 0 || this.side === 2) ? 0.82 : 1;
     const ease = Math.min(1, dtMs / 220);
     for (const t of this.tongues) {
       const want = !embers && fuel > 0.02 && fuel + 0.001 >= t.minFuel ? 1 : 0;
       t.presence += (want - t.presence) * ease;
-      if (!fr.reducedMotion && want && t.flick <= 0 && Math.random() < dt * 0.35 * calm) t.flick = 1;
+      if (!fr.reducedMotion && want && t.flick <= 0 && Math.random() < dt * 0.35 * calm)
+        t.flick = 1;
       t.flick = Math.max(0, t.flick - dtMs / 260);
       const vis = t.presence > 0.03 && fs > 0;
       t.img.setVisible(vis);
       if (!vis) continue;
       setArt(t.img, K.tongue(t.layer, t.shape), this.boil.variant(t.boilOff + this.boilOff));
-      const wob = fr.reducedMotion ? 0 : Math.sin((timeMs / 1000) * t.speed * (0.8 + 0.4 * calm) + t.phase);
-      const wob2 = fr.reducedMotion ? 0 : Math.sin((timeMs / 1000) * t.speed * 0.63 + t.phase * 1.7);
+      const wob = fr.reducedMotion
+        ? 0
+        : Math.sin((timeMs / 1000) * t.speed * (0.8 + 0.4 * calm) + t.phase);
+      const wob2 = fr.reducedMotion
+        ? 0
+        : Math.sin((timeMs / 1000) * t.speed * 0.63 + t.phase * 1.7);
       const flick = 1 + 0.22 * Math.sin(t.flick * Math.PI);
-      const h = fs * t.hf * t.presence * (0.86 + 0.14 * wob) * flick * gustSquash * (1 + this.flash * 0.25);
+      const h =
+        fs * t.hf * t.presence * (0.86 + 0.14 * wob) * flick * gustSquash * (1 + this.flash * 0.25);
       t.img.setScale(artScale() * (0.72 + 0.28 * fs) * (0.6 + 0.4 * t.presence), artScale() * h);
-      t.img.setRotation(t.lean * (0.6 + 0.4 * fs) + lean * (1 + t.layer * 0.15) + wob2 * t.sway * calm);
+      t.img.setRotation(
+        t.lean * (0.6 + 0.4 * fs) + lean * (1 + t.layer * 0.15) + wob2 * t.sway * calm,
+      );
       t.img.setPosition(this.pit.x + t.off * C * (0.65 + 0.35 * fs), this.pit.y + 0.04 * C);
     }
     this.bloom.setVisible(fs > 0);
@@ -391,7 +461,11 @@ export class FireView {
     this.emberGlow.setVisible(embers);
     if (embers) {
       setArt(this.embers, K.embers, this.boil.variant(this.boilOff));
-      this.emberGlow.setAlpha(light.glowAlphaEmber * (0.4 + 0.6 * emberFrac) * (fr.reducedMotion ? 1 : 0.85 + 0.15 * Math.sin(timeMs / 180)));
+      this.emberGlow.setAlpha(
+        light.glowAlphaEmber *
+          (0.4 + 0.6 * emberFrac) *
+          (fr.reducedMotion ? 1 : 0.85 + 0.15 * Math.sin(timeMs / 180)),
+      );
       this.emberGlow.setScale(artScale() * (0.9 + 0.3 * emberFrac));
     }
     // Тёплый ореол — растёртое пятно, масштаб за светом.
@@ -410,7 +484,11 @@ export class FireView {
         const o = OUTWARD[this.side];
         const vx = fr.gust ? -o.x * 120 : 0;
         const vy = fr.gust ? -o.y * 80 : 0;
-        this.sparks.emitParticleAt(this.pit.x + (Math.random() - 0.5) * 0.3 * C + vx * 0.1, this.pit.y - fs * 0.6 * C + vy * 0.1, 1);
+        this.sparks.emitParticleAt(
+          this.pit.x + (Math.random() - 0.5) * 0.3 * C + vx * 0.1,
+          this.pit.y - fs * 0.6 * C + vy * 0.1,
+          1,
+        );
       }
     }
     // Дым: разгорающийся дуб и угли.
@@ -419,7 +497,11 @@ export class FireView {
       this.smokeAcc += dt * smokeRate;
       while (this.smokeAcc >= 1) {
         this.smokeAcc -= 1;
-        this.smoke.emitParticleAt(this.pit.x + (Math.random() - 0.5) * 0.2 * C, this.pit.y - 0.2 * C, 1);
+        this.smoke.emitParticleAt(
+          this.pit.x + (Math.random() - 0.5) * 0.2 * C,
+          this.pit.y - 0.2 * C,
+          1,
+        );
       }
     }
     // Листья за костром: предупреждение и порыв.
@@ -429,13 +511,20 @@ export class FireView {
         this.leafAcc -= 1;
         const o = OUTWARD[this.side];
         this.leaves.setTexture(K.leaf(Math.floor(Math.random() * 3)));
-        this.leaves.emitParticleAt(this.pit.x + o.x * 1.6 * C + (Math.random() - 0.5) * C * (o.x ? 0.4 : 1.2), this.pit.y + o.y * 1.6 * C + (Math.random() - 0.5) * C * (o.y ? 0.4 : 1.2), 1);
+        this.leaves.emitParticleAt(
+          this.pit.x + o.x * 1.6 * C + (Math.random() - 0.5) * C * (o.x ? 0.4 : 1.2),
+          this.pit.y + o.y * 1.6 * C + (Math.random() - 0.5) * C * (o.y ? 0.4 : 1.2),
+          1,
+        );
       }
     }
     this.windIcon.setVisible(fr.warned || fr.gust);
     if (fr.warned || fr.gust) {
       this.windIcon.setAlpha(fr.gust ? 1 : 0.6 + 0.4 * Math.sin(timeMs / 160));
-      this.windIcon.x = this.pit.x + OUTWARD[this.side].x * 0.55 * C + (fr.reducedMotion ? 0 : Math.sin(timeMs / 230) * 3);
+      this.windIcon.x =
+        this.pit.x +
+        OUTWARD[this.side].x * 0.55 * C +
+        (fr.reducedMotion ? 0 : Math.sin(timeMs / 230) * 3);
     }
 
     this.updateGauge(f, fr, dtMs, timeMs);
@@ -469,13 +558,16 @@ export class FireView {
       this.gaugeHatch.setVisible(true).setPosition(xAt(u), 0);
       const prog = 1 - Math.max(0, f.catching) / balance.oakCatchA;
       const w = this.gaugeHatch.frame.width * artScale();
-      this.gaugeStrip.setVisible(true).setPosition(xAt(u) + prog * w, fr.reducedMotion ? 0 : Math.sin(timeMs / 90) * 0.6);
+      this.gaugeStrip
+        .setVisible(true)
+        .setPosition(xAt(u) + prog * w, fr.reducedMotion ? 0 : Math.sin(timeMs / 90) * 0.6);
     } else {
       this.gaugeHatch.setVisible(false);
       this.gaugeStrip.setVisible(false);
     }
     this.gaugeGhost.setVisible(fr.oakGhost);
-    if (fr.oakGhost) this.gaugeGhost.setPosition(xAt(f.fuel), 0).setAlpha(0.65 + 0.35 * Math.sin(timeMs / 260));
+    if (fr.oakGhost)
+      this.gaugeGhost.setPosition(xAt(f.fuel), 0).setAlpha(0.65 + 0.35 * Math.sin(timeMs / 260));
     if (this.gaugeBlink > 0) {
       this.gaugeBlink = Math.max(0, this.gaugeBlink - dtMs / 600);
       const on = Math.floor(this.gaugeBlink * 6) % 2 === 0;
@@ -513,10 +605,16 @@ export class FireView {
       e.y = spot.y + o.x * drift - o.y * close;
       if (timeMs > e.blinkAt) {
         e.blinkUntil = timeMs + timing.eyesBlinkMs;
-        e.blinkAt = timeMs + timing.eyesBlinkMinMs + Math.random() * (timing.eyesBlinkMaxMs - timing.eyesBlinkMinMs);
+        e.blinkAt =
+          timeMs +
+          timing.eyesBlinkMinMs +
+          Math.random() * (timing.eyesBlinkMaxMs - timing.eyesBlinkMinMs);
       }
       const blink = timeMs < e.blinkUntil ? 0.12 : 1;
-      e.img.setPosition(e.x, e.y).setAlpha(e.alpha).setScale(artScale(), artScale() * blink);
+      e.img
+        .setPosition(e.x, e.y)
+        .setAlpha(e.alpha)
+        .setScale(artScale(), artScale() * blink);
       e.glow.setPosition(e.x, e.y).setAlpha(e.alpha * 0.8);
       e.img.setVisible(e.alpha > 0.01);
       e.glow.setVisible(e.alpha > 0.01);
@@ -531,7 +629,12 @@ export class FireView {
       const dx = this.wolfSpot.x - this.pit.x;
       const back = this.wolfJump * 0.6 * CELL;
       const l = Math.hypot(dx, this.wolfSpot.y - this.pit.y) || 1;
-      this.wolf.setPosition(this.wolfSpot.x + (dx / l) * back, this.wolfSpot.y + ((this.wolfSpot.y - this.pit.y) / l) * back - Math.sin(this.wolfJump * Math.PI) * 0.3 * CELL);
+      this.wolf.setPosition(
+        this.wolfSpot.x + (dx / l) * back,
+        this.wolfSpot.y +
+          ((this.wolfSpot.y - this.pit.y) / l) * back -
+          Math.sin(this.wolfJump * Math.PI) * 0.3 * CELL,
+      );
       this.wolf.setFlipX(dx > 0);
       this.wolf.setAlpha(Math.max(this.wolfShown, this.wolfJump) * 0.95);
     }

@@ -24,7 +24,7 @@ export class LocalBankProvider implements QuestionProvider {
   constructor(bank: readonly Question[], opts: LocalBankOptions = {}) {
     if (bank.length === 0) throw new Error('empty question bank');
     this.bank = bank.map((q) => ({ ...q, options: q.options.slice() }));
-    this.rng = mulberry32(opts.seed ?? (Date.now() & 0x7fffffff));
+    this.rng = mulberry32(opts.seed ?? Date.now() & 0x7fffffff);
     this.noRepeat = Math.min(opts.noRepeatWithin ?? 10, Math.max(0, bank.length - 1));
     this.retry = opts.retryAfter ?? [4, 6];
   }
@@ -36,7 +36,8 @@ export class LocalBankProvider implements QuestionProvider {
   report(r: AnswerReport): void {
     if (r.correct) return;
     const gap = this.retry[0] + randInt(this.rng, this.retry[1] - this.retry[0] + 1);
-    if (!this.retryQueue.some((x) => x.id === r.id)) this.retryQueue.push({ id: r.id, due: this.shown + gap });
+    if (!this.retryQueue.some((x) => x.id === r.id))
+      this.retryQueue.push({ id: r.id, due: this.shown + gap });
   }
 
   private pick(): Question {
@@ -62,7 +63,10 @@ export class LocalBankProvider implements QuestionProvider {
 
 /** Перемешать варианты и пересчитать correctIndex. */
 export function shuffleOptions(q: Question, rng: Rng): Question {
-  const order = shuffle(rng, q.options.map((_, i) => i));
+  const order = shuffle(
+    rng,
+    q.options.map((_, i) => i),
+  );
   return {
     ...q,
     options: order.map((i) => q.options[i]),

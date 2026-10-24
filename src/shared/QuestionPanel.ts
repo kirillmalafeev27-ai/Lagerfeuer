@@ -67,8 +67,12 @@ export class QuestionPanel {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.bf-option');
       if (b) b.classList.add('is-pressed');
     });
-    this.options.addEventListener('pointerup', () => this.options.querySelectorAll('.is-pressed').forEach((b) => b.classList.remove('is-pressed')));
-    this.options.addEventListener('pointerleave', () => this.options.querySelectorAll('.is-pressed').forEach((b) => b.classList.remove('is-pressed')));
+    this.options.addEventListener('pointerup', () =>
+      this.options.querySelectorAll('.is-pressed').forEach((b) => b.classList.remove('is-pressed')),
+    );
+    this.options.addEventListener('pointerleave', () =>
+      this.options.querySelectorAll('.is-pressed').forEach((b) => b.classList.remove('is-pressed')),
+    );
     this.options.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.bf-option');
       if (b) this.pick(Number(b.dataset.i));
@@ -114,7 +118,9 @@ export class QuestionPanel {
   private applyLock(): void {
     const locked = this.mode !== 'active' || this.lockedByReady;
     this.o.host.classList.toggle('is-locked', locked);
-    this.options.querySelectorAll<HTMLButtonElement>('.bf-option').forEach((b) => (b.disabled = locked));
+    this.options
+      .querySelectorAll<HTMLButtonElement>('.bf-option')
+      .forEach((b) => (b.disabled = locked));
   }
 
   private activate(): void {
@@ -123,7 +129,9 @@ export class QuestionPanel {
 
   /** Номер верного варианта текущего вопроса (только для отладки и e2e). */
   debugCorrectIndex(): number | null {
-    return this.current && !this.busy && this.mode === 'active' && !this.lockedByReady ? this.current.correctIndex : null;
+    return this.current && !this.busy && this.mode === 'active' && !this.lockedByReady
+      ? this.current.correctIndex
+      : null;
   }
 
   /** Клавиши 1–4. */
@@ -212,7 +220,10 @@ export class QuestionPanel {
     const el = this.prompt;
     let size = max;
     this.promptText.style.fontSize = `${size}px`;
-    while (size > min && (el.scrollHeight > el.clientHeight + 1 || this.promptText.scrollWidth > el.clientWidth + 1)) {
+    while (
+      size > min &&
+      (el.scrollHeight > el.clientHeight + 1 || this.promptText.scrollWidth > el.clientWidth + 1)
+    ) {
       size--;
       this.promptText.style.fontSize = `${size}px`;
     }

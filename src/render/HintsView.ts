@@ -16,8 +16,11 @@ export class HintsView {
   private x2Pos: { x: number; y: number } | null = null;
 
   constructor(scene: Phaser.Scene) {
-    for (let i = 0; i < 28; i++) this.dots.push(artImage(scene, 0, 0, K.routeDot).setDepth(DEPTH.overHints).setVisible(false));
-    this.x2 = artImage(scene, 0, 0, K.x2).setDepth(DEPTH.overHints + 1).setVisible(false);
+    for (let i = 0; i < 28; i++)
+      this.dots.push(artImage(scene, 0, 0, K.routeDot).setDepth(DEPTH.overHints).setVisible(false));
+    this.x2 = artImage(scene, 0, 0, K.x2)
+      .setDepth(DEPTH.overHints + 1)
+      .setVisible(false);
   }
 
   /** Ломаная маршрута (в мире): от героя к цели. */

@@ -4,13 +4,28 @@
 import { look } from '../../config/look.ts';
 import { mix, palette } from '../../config/palette.ts';
 import { K } from '../manifest.ts';
-import { type Pt, PastelLayer, blob, chalkLine, crumbs, makePen, pastelFill, smudge, strip } from '../../shared/pastelKit.ts';
+import {
+  type Pt,
+  PastelLayer,
+  blob,
+  chalkLine,
+  crumbs,
+  makePen,
+  pastelFill,
+  smudge,
+  strip,
+} from '../../shared/pastelKit.ts';
 import { type RC, type Tex, canvasFor, ellipsePts, tex } from './common.ts';
 
 /** Ширина полосы неба, клеток (с запасом на широкие экраны). */
 export const SKY_W = 12;
 
-function skyBand(rc: RC, colors: readonly string[], seed: number, stars: boolean): HTMLCanvasElement {
+function skyBand(
+  rc: RC,
+  colors: readonly string[],
+  seed: number,
+  stars: boolean,
+): HTMLCanvasElement {
   const C = rc.C;
   const W = Math.ceil(C * SKY_W);
   const H = Math.ceil(C * look.sky.max);
@@ -31,7 +46,17 @@ function skyBand(rc: RC, colors: readonly string[], seed: number, stars: boolean
       while (x0 < W) {
         const len = C * (0.6 + pen.rng() * 1.2);
         const tone = pen.rng() < 0.25 && b + 1 < bands ? colors[b + 1] : colors[b];
-        strip(L.ctx, pen, x0, y + (pen.rng() - 0.5) * 3, x0 + len, y + (pen.rng() - 0.5) * 5, C * 0.1, tone, 0.75 + pen.rng() * 0.2);
+        strip(
+          L.ctx,
+          pen,
+          x0,
+          y + (pen.rng() - 0.5) * 3,
+          x0 + len,
+          y + (pen.rng() - 0.5) * 5,
+          C * 0.1,
+          tone,
+          0.75 + pen.rng() * 0.2,
+        );
         x0 += len * (0.85 + pen.rng() * 0.2);
       }
     }
@@ -41,7 +66,14 @@ function skyBand(rc: RC, colors: readonly string[], seed: number, stars: boolean
     for (let i = 0; i < 70; i++) {
       const sx = pen.rng() * W;
       const sy = pen.rng() * H * 0.7;
-      crumbs(x, pen, { x: sx, y: sy, w: 1, h: 1 }, palette.sky.star, 1, C * (0.008 + pen.rng() * 0.012));
+      crumbs(
+        x,
+        pen,
+        { x: sx, y: sy, w: 1, h: 1 },
+        palette.sky.star,
+        1,
+        C * (0.008 + pen.rng() * 0.012),
+      );
     }
   }
   return c;
@@ -64,10 +96,22 @@ function horizon(rc: RC): HTMLCanvasElement {
     px += w;
   }
   pts.push({ x: W, y: H - C * 0.08 }, { x: W, y: H });
-  pastelFill(x, pen, pts, palette.paper, -0.3, 1.3, { stroke: C * 0.06, under: 0.95, tones: [palette.paper, mix(palette.paper, palette.forest.fir, 0.35)] });
+  pastelFill(x, pen, pts, palette.paper, -0.3, 1.3, {
+    stroke: C * 0.06,
+    under: 0.95,
+    tones: [palette.paper, mix(palette.paper, palette.forest.fir, 0.35)],
+  });
   const tops = pts.filter((p, i) => i % 2 === 0 && p.y < H - C * 0.12);
   for (const t of tops) {
-    chalkLine(x, pen, [{ x: t.x - C * 0.04, y: t.y + C * 0.06 }, t, { x: t.x + C * 0.04, y: t.y + C * 0.06 }], Math.max(1, C * 0.008), palette.chalk, false, 0.35);
+    chalkLine(
+      x,
+      pen,
+      [{ x: t.x - C * 0.04, y: t.y + C * 0.06 }, t, { x: t.x + C * 0.04, y: t.y + C * 0.06 }],
+      Math.max(1, C * 0.008),
+      palette.chalk,
+      false,
+      0.35,
+    );
   }
   return c;
 }
@@ -78,11 +122,29 @@ function moon(rc: RC): HTMLCanvasElement {
   const [c, x] = canvasFor(s, s);
   const pen = makePen(rc.seed * 149, 0, 0);
   smudge(x, pen, s / 2, s / 2, s * 0.48, palette.sky.moon, 0.35);
-  const disc = blob(pen.rng, C * 0.36, C * 0.36, { cx: s / 2, cy: s / 2, irregularity: 0.03, points: 14 });
-  pastelFill(x, pen, disc, palette.sky.moon, -0.7, 1.4, { stroke: C * 0.04, under: 0.9, tones: [palette.sky.moon, mix(palette.sky.moon, palette.chalk, 0.4)] });
+  const disc = blob(pen.rng, C * 0.36, C * 0.36, {
+    cx: s / 2,
+    cy: s / 2,
+    irregularity: 0.03,
+    points: 14,
+  });
+  pastelFill(x, pen, disc, palette.sky.moon, -0.7, 1.4, {
+    stroke: C * 0.04,
+    under: 0.9,
+    tones: [palette.sky.moon, mix(palette.sky.moon, palette.chalk, 0.4)],
+  });
   for (let i = 0; i < 3; i++) {
-    const cr = ellipsePts(s / 2 + (pen.rng() - 0.5) * C * 0.18, s / 2 + (pen.rng() - 0.5) * C * 0.18, C * 0.035, C * 0.03, 8);
-    pastelFill(x, pen, cr, mix(palette.sky.moon, palette.stone.light, 0.6), 0, 1, { stroke: C * 0.02, under: 0.7 });
+    const cr = ellipsePts(
+      s / 2 + (pen.rng() - 0.5) * C * 0.18,
+      s / 2 + (pen.rng() - 0.5) * C * 0.18,
+      C * 0.035,
+      C * 0.03,
+      8,
+    );
+    pastelFill(x, pen, cr, mix(palette.sky.moon, palette.stone.light, 0.6), 0, 1, {
+      stroke: C * 0.02,
+      under: 0.7,
+    });
   }
   chalkLine(x, pen, disc, Math.max(1, C * 0.01), palette.chalk, true, 0.7);
   return c;
@@ -94,8 +156,17 @@ function sun(rc: RC): HTMLCanvasElement {
   const [c, x] = canvasFor(s, s);
   const pen = makePen(rc.seed * 151, 0, 0);
   smudge(x, pen, s / 2, s / 2, s * 0.49, palette.dawn.sun, 0.6);
-  const disc = blob(pen.rng, C * 0.5, C * 0.5, { cx: s / 2, cy: s / 2, irregularity: 0.03, points: 14 });
-  pastelFill(x, pen, disc, palette.dawn.sun, -0.7, 1.4, { stroke: C * 0.05, under: 0.95, tones: [palette.dawn.sun, palette.dawn.peach] });
+  const disc = blob(pen.rng, C * 0.5, C * 0.5, {
+    cx: s / 2,
+    cy: s / 2,
+    irregularity: 0.03,
+    points: 14,
+  });
+  pastelFill(x, pen, disc, palette.dawn.sun, -0.7, 1.4, {
+    stroke: C * 0.05,
+    under: 0.95,
+    tones: [palette.dawn.sun, palette.dawn.peach],
+  });
   return c;
 }
 
@@ -113,7 +184,19 @@ function bird(rc: RC): HTMLCanvasElement {
   const C = rc.C;
   const [c, x] = canvasFor(C * 0.2, C * 0.12);
   const pen = makePen(rc.seed * 163, 0, 0);
-  chalkLine(x, pen, [{ x: C * 0.02, y: C * 0.05 }, { x: C * 0.1, y: C * 0.08 }, { x: C * 0.18, y: C * 0.03 }], Math.max(1, C * 0.012), palette.cardInk, false, 0.9);
+  chalkLine(
+    x,
+    pen,
+    [
+      { x: C * 0.02, y: C * 0.05 },
+      { x: C * 0.1, y: C * 0.08 },
+      { x: C * 0.18, y: C * 0.03 },
+    ],
+    Math.max(1, C * 0.012),
+    palette.cardInk,
+    false,
+    0.9,
+  );
   return c;
 }
 
@@ -121,7 +204,13 @@ export function drawSky(rc: RC): Tex[] {
   const s = palette.sky;
   const d = palette.dawn;
   return [
-    tex(K.skyNight, skyBand(rc, [s.night, mix(s.night, s.high, 0.5), s.high], rc.seed * 167, true), 0.5, 0, 0.025),
+    tex(
+      K.skyNight,
+      skyBand(rc, [s.night, mix(s.night, s.high, 0.5), s.high], rc.seed * 167, true),
+      0.5,
+      0,
+      0.025,
+    ),
     tex(K.skyDawn, skyBand(rc, [d.violet, d.pink, d.peach], rc.seed * 173, false), 0.5, 0, 0.025),
     tex(K.skyHorizon, horizon(rc), 0.5, 1),
     tex(K.moon, moon(rc)),

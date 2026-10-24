@@ -14,7 +14,9 @@ const port = server.config.server.port ?? 5199;
 const url = `http://localhost:${server.httpServer.address().port}/lab.html?${query}`;
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width, height: 900 } });
-page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log('console:', m.text()); });
+page.on('console', (m) => {
+  if (m.type() === 'error' || m.type() === 'warning') console.log('console:', m.text());
+});
 page.on('pageerror', (e) => console.log('pageerror:', e.message));
 await page.goto(url);
 await page.waitForSelector('body[data-ready="1"]', { timeout: 120000 });

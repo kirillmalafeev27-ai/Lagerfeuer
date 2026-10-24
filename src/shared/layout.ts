@@ -1,7 +1,15 @@
 // Раскладка экрана серии (раздел 11.1): панель мира и панель вопроса, портрет и ландшафт,
 // просветы 10–14 px, safe-area. Темы задают картинки и цвета через CSS-переменные.
 
-import { chalkFrame, ctx2d, makeCanvas, makePen, mulberry32, strip, toothTile } from './pastelKit.ts';
+import {
+  chalkFrame,
+  ctx2d,
+  makeCanvas,
+  makePen,
+  mulberry32,
+  strip,
+  toothTile,
+} from './pastelKit.ts';
 
 export interface ThemeColors {
   paper: string;
@@ -42,7 +50,17 @@ export function chalkThemeImages(c: ThemeColors): Record<string, string> {
   for (let i = 0; i < 70; i++) {
     const y = pen.rng() * 140 - 6;
     const x0 = pen.rng() * 256 - 40;
-    strip(x, pen, x0, y, x0 + 50 + pen.rng() * 80, y - 14 - pen.rng() * 10, 7, pen.rng() < 0.5 ? '#ffffff' : c.paperTooth, 0.09);
+    strip(
+      x,
+      pen,
+      x0,
+      y,
+      x0 + 50 + pen.rng() * 80,
+      y - 14 - pen.rng() * 10,
+      7,
+      pen.rng() < 0.5 ? '#ffffff' : c.paperTooth,
+      0.09,
+    );
   }
   return {
     '--bf-tooth': `url(${tooth})`,
@@ -52,7 +70,11 @@ export function chalkThemeImages(c: ThemeColors): Record<string, string> {
   };
 }
 
-export function createLayout(container: HTMLElement, colors: ThemeColors, images: Record<string, string>): Layout {
+export function createLayout(
+  container: HTMLElement,
+  colors: ThemeColors,
+  images: Record<string, string>,
+): Layout {
   const root = document.createElement('div');
   root.className = 'bf';
   root.setAttribute('data-theme', 'chalk');

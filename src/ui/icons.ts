@@ -2,7 +2,17 @@
 
 import { mix, palette } from '../config/palette.ts';
 import { drawLogShape } from '../art/recipes/firePit.ts';
-import { blob, chalkLine, ctx2d, makeCanvas, makePen, pastelFill, pastelWord, smudge, type Pt } from '../shared/pastelKit.ts';
+import {
+  blob,
+  chalkLine,
+  ctx2d,
+  makeCanvas,
+  makePen,
+  pastelFill,
+  pastelWord,
+  smudge,
+  type Pt,
+} from '../shared/pastelKit.ts';
 
 const cache = new Map<string, string>();
 
@@ -16,6 +26,21 @@ function memo(key: string, draw: () => HTMLCanvasElement): string {
 
 const S = 96;
 
+/**
+ * Нарисовать все значки заранее, пока идёт загрузка: toDataURL посреди ночи подвешивает
+ * кадр (браузер ждёт видеокарту).
+ */
+export function warmIcons(words: readonly string[]): void {
+  iconStep();
+  iconReady();
+  iconHands();
+  for (const k of ['birch', 'oak'] as const) for (const n of [1, 2]) iconLog(k, n);
+  for (let i = 0; i <= 20; i++) moonProgress(i / 20);
+  iconStar(true);
+  iconStar(false);
+  for (const w of words) wordImage(w);
+}
+
 /** Шаг: два следа сапог. */
 export function iconStep(): string {
   return memo('step', () => {
@@ -28,7 +53,11 @@ export function iconStep(): string {
     ] as const) {
       const sole = blob(pen.rng, 18, 32, { cx, cy, rot: r, irregularity: 0.08 });
       pastelFill(x, pen, sole, palette.chalk, -0.6, 1.3, { stroke: 5, under: 0.85 });
-      const heel = blob(pen.rng, 14, 11, { cx: cx - Math.sin(r) * 22, cy: cy + Math.cos(r) * 22, irregularity: 0.1 });
+      const heel = blob(pen.rng, 14, 11, {
+        cx: cx - Math.sin(r) * 22,
+        cy: cy + Math.cos(r) * 22,
+        irregularity: 0.1,
+      });
       pastelFill(x, pen, heel, palette.chalk, -0.6, 1.3, { stroke: 5, under: 0.85 });
     }
     return c;
@@ -57,7 +86,12 @@ export function iconReady(): string {
     smudge(x, pen, S / 2, S / 2, 40, palette.caption, 0.35);
     const mitt = blob(pen.rng, 40, 50, { cx: S / 2, cy: S / 2 + 4, irregularity: 0.08 });
     pastelFill(x, pen, mitt, palette.hero.hat, -0.6, 1.3, { stroke: 6, under: 0.85 });
-    const thumb = blob(pen.rng, 14, 22, { cx: S / 2 + 22, cy: S / 2 + 2, rot: 0.6, irregularity: 0.1 });
+    const thumb = blob(pen.rng, 14, 22, {
+      cx: S / 2 + 22,
+      cy: S / 2 + 2,
+      rot: 0.6,
+      irregularity: 0.1,
+    });
     pastelFill(x, pen, thumb, palette.hero.hat, -0.6, 1.3, { stroke: 5, under: 0.85 });
     chalkLine(x, pen, mitt, 2.4, palette.chalk, true, 0.9);
     return c;
@@ -93,7 +127,11 @@ export function moonProgress(share: number): string {
     const col = mix(palette.sky.moon, palette.dawn.sun, Math.max(0, (step - 0.6) / 0.4));
     smudge(x, pen, cx, cy, R + 10, col, sun ? 0.55 : 0.25);
     const disc: Pt[] = [];
-    for (let i = 0; i < 24; i++) disc.push({ x: cx + Math.cos((i / 24) * Math.PI * 2) * R, y: cy + Math.sin((i / 24) * Math.PI * 2) * R });
+    for (let i = 0; i < 24; i++)
+      disc.push({
+        x: cx + Math.cos((i / 24) * Math.PI * 2) * R,
+        y: cy + Math.sin((i / 24) * Math.PI * 2) * R,
+      });
     pastelFill(x, pen, disc, col, -0.6, 1.3, { stroke: 7, under: 0.9 });
     if (!sun) {
       // Тень наползает справа налево: от полумесяца к полной луне-солнцу.
@@ -112,7 +150,9 @@ export function moonProgress(share: number): string {
 
 /** Слово-звук для DOM («HOPPLA!» в углу панели). */
 export function wordImage(text: string): string {
-  return memo(`word:${text}`, () => pastelWord(text, { fill: palette.caption, shade: palette.chalk, chalk: palette.chalk }, 56));
+  return memo(`word:${text}`, () =>
+    pastelWord(text, { fill: palette.caption, shade: palette.chalk, chalk: palette.chalk }, 56),
+  );
 }
 
 /** Звезда для итогов. */

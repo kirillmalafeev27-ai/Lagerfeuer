@@ -30,8 +30,9 @@
   inset: 0;
   display: grid;
   gap: var(--bf-gap);
-  padding: max(var(--bf-gap), env(safe-area-inset-top)) max(var(--bf-gap), env(safe-area-inset-right))
-    max(var(--bf-gap), env(safe-area-inset-bottom)) max(var(--bf-gap), env(safe-area-inset-left));
+  padding: max(var(--bf-gap), env(safe-area-inset-top))
+    max(var(--bf-gap), env(safe-area-inset-right)) max(var(--bf-gap), env(safe-area-inset-bottom))
+    max(var(--bf-gap), env(safe-area-inset-left));
   grid-template-columns: 1fr;
   grid-template-rows: minmax(0, 1fr) clamp(300px, 42%, 420px);
 }
@@ -318,7 +319,10 @@
   border: 2px solid var(--bf-chalk);
   background: transparent;
   color: var(--bf-chalk);
-  font: 400 17px 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 17px 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
   /* Обводка цветом букв: каракули Rubik Scribble плотнеют и читаются мелко. */
   -webkit-text-stroke: 0.9px currentColor;
   padding: 3px 9px;
@@ -355,7 +359,9 @@
   border-radius: 10px;
   background: transparent;
   color: var(--bf-chalk);
-  font: 500 15px 'Rubik', sans-serif;
+  font:
+    500 15px 'Rubik',
+    sans-serif;
   padding: 6px 12px;
   min-height: 34px;
   cursor: pointer;
@@ -401,8 +407,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
-    max(16px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   pointer-events: auto;
   animation: bf-fade-in 0.25s ease-out;
 }
@@ -430,20 +436,32 @@
 }
 
 .bf-title {
-  font: 400 clamp(34px, 7.5vmin, 64px) / 1.05 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 clamp(34px, 7.5vmin, 64px) / 1.05 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1.2px currentColor;
   color: var(--bf-chalk);
   margin: 0;
   text-shadow: 0 0 22px color-mix(in srgb, var(--bf-caption) 35%, transparent);
 }
 
 .bf-subtitle {
-  font: 400 clamp(17px, 3vmin, 24px) 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 clamp(17px, 3vmin, 24px) 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1px currentColor;
   color: var(--bf-caption);
   margin: 6px 0 0;
 }
 
 .bf-h2 {
-  font: 400 clamp(22px, 4vmin, 32px) 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 clamp(22px, 4vmin, 32px) 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1px currentColor;
   margin: 0 0 12px;
   color: var(--bf-chalk);
 }
@@ -510,7 +528,11 @@
 }
 
 .bf-level .bf-level-num {
-  font: 400 30px 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 30px 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1px currentColor;
   line-height: 1;
 }
 
@@ -637,7 +659,11 @@
 }
 
 .bf-loading .bf-lades {
-  font: 400 34px 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 34px 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1px currentColor;
 }
 
 .bf-loading .bf-tip {
@@ -670,11 +696,17 @@
 }
 
 .bf-intro .bf-line {
-  font: 400 clamp(22px, 4.6vmin, 38px) 'Rubik Scribble', 'Rubik', sans-serif;
+  font:
+    400 clamp(22px, 4.6vmin, 38px) 'Rubik Scribble',
+    'Rubik',
+    sans-serif;
+  -webkit-text-stroke: 1px currentColor;
   color: var(--bf-chalk);
   opacity: 0;
   animation: bf-fade-in 0.45s ease-out forwards;
-  text-shadow: 0 2px 0 var(--bf-paper), 0 0 18px var(--bf-paper);
+  text-shadow:
+    0 2px 0 var(--bf-paper),
+    0 0 18px var(--bf-paper);
 }
 
 .bf-intro .bf-line + .bf-line {

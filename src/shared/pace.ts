@@ -52,8 +52,12 @@ export class PaceTracker {
       const raw = storage.get(key);
       if (raw) {
         const d = JSON.parse(raw) as Partial<PaceData>;
-        this.data.times = Array.isArray(d.times) ? d.times.filter((x) => typeof x === 'number') : [];
-        this.data.results = Array.isArray(d.results) ? d.results.filter((x) => x === 0 || x === 1) : [];
+        this.data.times = Array.isArray(d.times)
+          ? d.times.filter((x) => typeof x === 'number')
+          : [];
+        this.data.results = Array.isArray(d.results)
+          ? d.results.filter((x) => x === 0 || x === 1)
+          : [];
       }
     } catch {
       /* битые данные — начинаем заново */
@@ -64,8 +68,10 @@ export class PaceTracker {
   record(timeMs: number, correct: boolean): void {
     this.data.times.push(Math.max(0, timeMs) / 1000);
     this.data.results.push(correct ? 1 : 0);
-    if (this.data.times.length > this.cfg.timeWindow) this.data.times.splice(0, this.data.times.length - this.cfg.timeWindow);
-    if (this.data.results.length > this.cfg.accWindow) this.data.results.splice(0, this.data.results.length - this.cfg.accWindow);
+    if (this.data.times.length > this.cfg.timeWindow)
+      this.data.times.splice(0, this.data.times.length - this.cfg.timeWindow);
+    if (this.data.results.length > this.cfg.accWindow)
+      this.data.results.splice(0, this.data.results.length - this.cfg.accWindow);
     this.storage.set(this.key, JSON.stringify(this.data));
   }
 
@@ -75,7 +81,10 @@ export class PaceTracker {
     const times = this.data.times.slice(-c.timeWindow);
     const results = this.data.results.slice(-c.accWindow);
     const tMed = times.length >= c.minTimeSamples ? median(times) : c.defaultTMed;
-    const p = results.length >= c.minAccSamples ? results.reduce((a, b) => a + b, 0) / results.length : c.defaultP;
+    const p =
+      results.length >= c.minAccSamples
+        ? results.reduce((a, b) => a + b, 0) / results.length
+        : c.defaultP;
     return {
       tMed: Math.min(c.maxTMed, Math.max(c.minTMed, tMed)),
       p: Math.min(c.maxP, Math.max(c.minP, p)),

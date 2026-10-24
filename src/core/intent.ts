@@ -13,10 +13,7 @@ import {
 import type { GameState, Intent } from './state.ts';
 import { carryMax } from './wood.ts';
 
-export type Planned =
-  | { type: 'step'; to: Cell }
-  | { type: 'feed'; fire: Side }
-  | { type: 'none' };
+export type Planned = { type: 'step'; to: Cell } | { type: 'feed'; fire: Side } | { type: 'none' };
 
 function handsFull(s: GameState): boolean {
   const h = s.hero.hands;

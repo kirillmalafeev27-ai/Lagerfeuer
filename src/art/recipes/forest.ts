@@ -28,7 +28,18 @@ function fir(pen: Pen, C: number, hCells: number, wCells: number): HTMLCanvasEle
   const cx = W / 2;
   const ground = H - C * 0.08;
   smudge(x, pen, cx, ground, W * 0.35, palette.paper, 0.7, 0.3);
-  pastelStroke(x, pen, [{ x: cx, y: ground }, { x: cx + 1, y: ground - C * 0.5 }], C * 0.12, f.trunk, 1, { taper: 0.05 });
+  pastelStroke(
+    x,
+    pen,
+    [
+      { x: cx, y: ground },
+      { x: cx + 1, y: ground - C * 0.5 },
+    ],
+    C * 0.12,
+    f.trunk,
+    1,
+    { taper: 0.05 },
+  );
   const tiers = 4 + Math.floor(pen.rng() * 2);
   const top = C * 0.1;
   const span = ground - C * 0.28 - top;
@@ -48,11 +59,39 @@ function fir(pen: Pen, C: number, hCells: number, wCells: number): HTMLCanvasEle
       { x: cx - half, y: y + drop },
       { x: cx - half * 0.55, y: y + drop * 0.35 },
     ];
-    pastelFill(x, pen, tier, f.fir, -0.5, 1.15, { stroke: C * 0.05, under: 0.7, tones: [f.fir, f.fir, mix(f.fir, palette.paper, 0.3)] });
-    const lit: Pt[] = [tier[0], tier[8], tier[7], tier[6], { x: cx - half * 0.1, y: y + drop * 0.5 }];
-    pastelFill(x, pen, lit, f.firLight, -0.9, 0.9, { stroke: C * 0.045, under: 0.25, cross: 0.2, pressure: 0.85 });
-    sgraffito(x, pen, scratches(pen, tier, 6 + Math.round(t * 8), C * 0.08, 0.6, 0.6), Math.max(1, C * 0.008));
-    chalkLine(x, pen, [tier[0], tier[8], tier[7]], Math.max(1, C * 0.01), palette.chalk, false, 0.5);
+    pastelFill(x, pen, tier, f.fir, -0.5, 1.15, {
+      stroke: C * 0.05,
+      under: 0.7,
+      tones: [f.fir, f.fir, mix(f.fir, palette.paper, 0.3)],
+    });
+    const lit: Pt[] = [
+      tier[0],
+      tier[8],
+      tier[7],
+      tier[6],
+      { x: cx - half * 0.1, y: y + drop * 0.5 },
+    ];
+    pastelFill(x, pen, lit, f.firLight, -0.9, 0.9, {
+      stroke: C * 0.045,
+      under: 0.25,
+      cross: 0.2,
+      pressure: 0.85,
+    });
+    sgraffito(
+      x,
+      pen,
+      scratches(pen, tier, 6 + Math.round(t * 8), C * 0.08, 0.6, 0.6),
+      Math.max(1, C * 0.008),
+    );
+    chalkLine(
+      x,
+      pen,
+      [tier[0], tier[8], tier[7]],
+      Math.max(1, C * 0.01),
+      palette.chalk,
+      false,
+      0.5,
+    );
   }
   return c;
 }
@@ -63,7 +102,16 @@ function fernClump(pen: Pen, C: number): HTMLCanvasElement {
   const [c, x] = canvasFor(W, H);
   const k = 5 + Math.floor(pen.rng() * 3);
   for (let j = 0; j < k; j++) {
-    fernFrond(x, pen, W / 2 + (pen.rng() - 0.5) * C * 0.08, H - C * 0.04, C * (0.28 + pen.rng() * 0.12), -Math.PI / 2 + (j / (k - 1) - 0.5) * 2.3, j % 2 ? f.fern : mix(f.fern, f.firLight, 0.5), f.firLight);
+    fernFrond(
+      x,
+      pen,
+      W / 2 + (pen.rng() - 0.5) * C * 0.08,
+      H - C * 0.04,
+      C * (0.28 + pen.rng() * 0.12),
+      -Math.PI / 2 + (j / (k - 1) - 0.5) * 2.3,
+      j % 2 ? f.fern : mix(f.fern, f.firLight, 0.5),
+      f.firLight,
+    );
   }
   return c;
 }
@@ -79,7 +127,11 @@ function bush(pen: Pen, C: number): HTMLCanvasElement {
       cy: H - C * 0.2 - pen.rng() * C * 0.15,
       irregularity: 0.2,
     });
-    pastelFill(x, pen, b, i % 2 ? f.fern : f.fir, -0.6, 1.1, { stroke: C * 0.045, under: 0.6, tones: [f.fern, f.fir, f.firLight] });
+    pastelFill(x, pen, b, i % 2 ? f.fern : f.fir, -0.6, 1.1, {
+      stroke: C * 0.045,
+      under: 0.6,
+      tones: [f.fern, f.fir, f.firLight],
+    });
     sgraffito(x, pen, scratches(pen, b, 6, C * 0.06, 0.8, 1.5), Math.max(1, C * 0.008));
   }
   grassTuft(x, pen, W * 0.3, H - C * 0.04, C * 0.16, [f.fern, f.firLight]);
@@ -94,7 +146,11 @@ function boulder(pen: Pen, C: number, big: boolean): HTMLCanvasElement {
   stone(x, pen, W / 2, H * 0.55, W * 0.86, H * 0.82);
   // Мох сверху.
   const moss = blob(pen.rng, W * 0.5, H * 0.22, { cx: W * 0.45, cy: H * 0.24, irregularity: 0.3 });
-  pastelFill(x, pen, moss, f.fern, -0.4, 1, { stroke: C * 0.04, under: 0.4, tones: [f.fern, f.firLight] });
+  pastelFill(x, pen, moss, f.fern, -0.4, 1, {
+    stroke: C * 0.04,
+    under: 0.4,
+    tones: [f.fern, f.firLight],
+  });
   grassTuft(x, pen, W * 0.2, H - C * 0.06, C * 0.14, [f.fern, f.firLight]);
   grassTuft(x, pen, W * 0.8, H - C * 0.06, C * 0.12, [f.fern, f.firLight]);
   return c;
@@ -106,13 +162,32 @@ function fallenLog(pen: Pen, C: number): HTMLCanvasElement {
   const [c, x] = canvasFor(W, H);
   smudge(x, pen, W / 2, H - C * 0.08, W * 0.46, palette.paper, 0.75, 0.2);
   const body = roundRectPts(pen, C * 0.1, H * 0.3, W - C * 0.25, H * 0.48, H * 0.2);
-  pastelFill(x, pen, body, f.trunk, -0.1, 1.25, { stroke: C * 0.06, under: 0.8, tones: [f.trunk, mix(f.trunk, palette.paper, 0.3)] });
+  pastelFill(x, pen, body, f.trunk, -0.1, 1.25, {
+    stroke: C * 0.06,
+    under: 0.8,
+    tones: [f.trunk, mix(f.trunk, palette.paper, 0.3)],
+  });
   sgraffito(x, pen, scratches(pen, body, 10, C * 0.35, 0, 0.08), Math.max(1, C * 0.01));
   const end = ellipsePts(W - C * 0.17, H * 0.54, C * 0.09, H * 0.23, 12);
-  pastelFill(x, pen, end, mix(f.trunk, palette.chalk, 0.3), 0.4, 1.2, { stroke: C * 0.03, under: 0.85 });
+  pastelFill(x, pen, end, mix(f.trunk, palette.chalk, 0.3), 0.4, 1.2, {
+    stroke: C * 0.03,
+    under: 0.85,
+  });
   const moss = blob(pen.rng, W * 0.4, H * 0.2, { cx: W * 0.4, cy: H * 0.32, irregularity: 0.35 });
-  pastelFill(x, pen, moss, f.fern, -0.4, 1, { stroke: C * 0.04, under: 0.4, tones: [f.fern, f.firLight] });
-  chalkLine(x, pen, body.filter((p) => p.y < H * 0.4).sort((a, b) => a.x - b.x), Math.max(1, C * 0.01), palette.chalk, false, 0.5);
+  pastelFill(x, pen, moss, f.fern, -0.4, 1, {
+    stroke: C * 0.04,
+    under: 0.4,
+    tones: [f.fern, f.firLight],
+  });
+  chalkLine(
+    x,
+    pen,
+    body.filter((p) => p.y < H * 0.4).sort((a, b) => a.x - b.x),
+    Math.max(1, C * 0.01),
+    palette.chalk,
+    false,
+    0.5,
+  );
   return c;
 }
 

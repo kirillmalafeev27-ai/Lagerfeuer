@@ -49,7 +49,13 @@ export class WorldView {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const w = look.world;
-    const floor = scene.add.tileSprite(w.left * CELL, w.top * CELL, (w.right - w.left) * CELL, (w.bottom - w.top) * CELL, 'floor');
+    const floor = scene.add.tileSprite(
+      w.left * CELL,
+      w.top * CELL,
+      (w.right - w.left) * CELL,
+      (w.bottom - w.top) * CELL,
+      'floor',
+    );
     floor.setOrigin(0, 0);
     floor.setTileScale(artScale(), artScale());
     floor.setDepth(DEPTH.floor);
@@ -79,17 +85,44 @@ export class WorldView {
         const x = pit.x + o.x * dist * CELL;
         const y = pit.y + o.y * dist * CELL + (side === 0 ? 0.1 * CELL : 0);
         const useLog = side === 2 || rng() < 0.35;
-        const img = artImage(this.scene, x, y, useLog ? K.fallenLog : K.boulder(rng() < 0.5 ? 0 : 1));
+        const img = artImage(
+          this.scene,
+          x,
+          y,
+          useLog ? K.fallenLog : K.boulder(rng() < 0.5 ? 0 : 1),
+        );
         if (side === 1 || side === 3) img.setFlipX(side === 3);
         img.setDepth(depthByY(y));
         this.decor.push(img);
       } else if (sh === 'open') {
         const cx = pit.x + o.x * 1.75 * CELL;
         const cy = pit.y + o.y * 1.75 * CELL;
-        corridors.push({ x0: cx - 0.85 * CELL, y0: cy - 1.4 * CELL, x1: cx + 0.85 * CELL, y1: cy + 1.4 * CELL });
-        if (side === 0 || side === 2) corridors.push({ x0: cx - 0.8 * CELL, y0: cy - 2.2 * CELL, x1: cx + 0.8 * CELL, y1: cy + 2.2 * CELL });
-        else corridors.push({ x0: cx - 2.2 * CELL, y0: cy - 0.8 * CELL, x1: cx + 2.2 * CELL, y1: cy + 0.8 * CELL });
-        const gap = artImage(this.scene, pit.x + o.x * 1.25 * CELL, pit.y + o.y * 1.25 * CELL, K.windGap);
+        corridors.push({
+          x0: cx - 0.85 * CELL,
+          y0: cy - 1.4 * CELL,
+          x1: cx + 0.85 * CELL,
+          y1: cy + 1.4 * CELL,
+        });
+        if (side === 0 || side === 2)
+          corridors.push({
+            x0: cx - 0.8 * CELL,
+            y0: cy - 2.2 * CELL,
+            x1: cx + 0.8 * CELL,
+            y1: cy + 2.2 * CELL,
+          });
+        else
+          corridors.push({
+            x0: cx - 2.2 * CELL,
+            y0: cy - 0.8 * CELL,
+            x1: cx + 2.2 * CELL,
+            y1: cy + 0.8 * CELL,
+          });
+        const gap = artImage(
+          this.scene,
+          pit.x + o.x * 1.25 * CELL,
+          pit.y + o.y * 1.25 * CELL,
+          K.windGap,
+        );
         if (side === 0 || side === 2) gap.setRotation(Math.PI / 2);
         gap.setDepth(DEPTH.ground + 1);
         gap.setAlpha(0.85);
@@ -116,9 +149,19 @@ export class WorldView {
       const kind = Math.floor(rng() * treeDims.length);
       const s = 0.82 + rng() * 0.3;
       const [tw, th] = treeDims[kind];
-      const box: Rect = { x0: x - (tw * s * CELL) / 2, y0: y - th * s * CELL, x1: x + (tw * s * CELL) / 2, y1: y };
+      const box: Rect = {
+        x0: x - (tw * s * CELL) / 2,
+        y0: y - th * s * CELL,
+        x1: x + (tw * s * CELL) / 2,
+        y1: y,
+      };
       if (overlaps(box, keep)) continue;
-      if (corridors.some((c) => overlaps({ x0: x - 0.3 * CELL, y0: y - 0.6 * CELL, x1: x + 0.3 * CELL, y1: y }, c))) continue;
+      if (
+        corridors.some((c) =>
+          overlaps({ x0: x - 0.3 * CELL, y0: y - 0.6 * CELL, x1: x + 0.3 * CELL, y1: y }, c),
+        )
+      )
+        continue;
       const r = tw * s * CELL * 0.42;
       if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.6) < p.r + r)) continue;
       placed.push({ x, y, r });
@@ -128,7 +171,13 @@ export class WorldView {
       // Дальние планы темнее и синее (7.5.2).
       const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy)) / CELL;
       const far = Math.min(1, Math.max(0, (dist - 3) / 2.5));
-      img.setTint(Phaser.Display.Color.GetColor(Math.round(255 - far * 120), Math.round(255 - far * 105), Math.round(255 - far * 60)));
+      img.setTint(
+        Phaser.Display.Color.GetColor(
+          Math.round(255 - far * 120),
+          Math.round(255 - far * 105),
+          Math.round(255 - far * 60),
+        ),
+      );
       img.setDepth(depthByY(y));
       this.decor.push(img);
     }
@@ -139,7 +188,12 @@ export class WorldView {
       const box: Rect = { x0: x - 0.4 * CELL, y0: y - 0.5 * CELL, x1: x + 0.4 * CELL, y1: y };
       if (overlaps(box, keep)) continue;
       const bushy = rng() < 0.3;
-      const img = artImage(this.scene, x, y, bushy ? K.bush(Math.floor(rng() * 2)) : K.fern(Math.floor(rng() * 3)));
+      const img = artImage(
+        this.scene,
+        x,
+        y,
+        bushy ? K.bush(Math.floor(rng() * 2)) : K.fern(Math.floor(rng() * 3)),
+      );
       img.setScale(img.scaleX * (0.8 + rng() * 0.4));
       if (rng() < 0.5) img.setFlipX(true);
       img.setDepth(depthByY(y));

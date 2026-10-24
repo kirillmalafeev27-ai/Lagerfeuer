@@ -30,7 +30,9 @@ export class Mixer {
   unlock(): void {
     try {
       if (!this.ctx) {
-        const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const AC =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!AC) return;
         const ctx = new AC({ latencyHint: 'interactive' });
         this.ctx = ctx;

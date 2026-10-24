@@ -265,7 +265,11 @@ function setIntent(
       }
       const it = h.intent;
       if (it && it.kind === 'feed' && it.fire === a.fire) {
-        if (h.hands.kind === 'birch' && h.hands.count >= 2 && freeSlots(f) + EPS >= 2 * balance.birchSize) {
+        if (
+          h.hands.kind === 'birch' &&
+          h.hands.count >= 2 &&
+          freeSlots(f) + EPS >= 2 * balance.birchSize
+        ) {
           h.x2 = !h.x2;
           h.autoIntent = false;
           ev.push({ type: 'X2', on: h.x2 });
@@ -475,7 +479,9 @@ function lose(s: GameState, side: Side, ev: GameEvent[]): void {
   s.stars = 0;
   const wind = s.level.wind;
   const recent = wind ? 2 * wind.dur + balance.emberA : 0;
-  const gust = s.gusts.some((g) => g.side === side && g.phase >= 2 && g.start <= s.t && g.end >= s.t - recent);
+  const gust = s.gusts.some(
+    (g) => g.side === side && g.phase >= 2 && g.start <= s.t && g.end >= s.t - recent,
+  );
   s.stats.cause = { fire: side, near: isNearFire(s.pile, side), gust };
   ev.push({ type: 'WOLF_IN', fire: side });
 }

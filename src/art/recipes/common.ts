@@ -20,7 +20,13 @@ export interface Tex {
   grain?: number;
 }
 
-export function tex(key: string, canvas: HTMLCanvasElement, ox = 0.5, oy = 0.5, grain?: number): Tex {
+export function tex(
+  key: string,
+  canvas: HTMLCanvasElement,
+  ox = 0.5,
+  oy = 0.5,
+  grain?: number,
+): Tex {
   return { key, canvas, ox, oy, grain };
 }
 
@@ -32,7 +38,10 @@ export function canvasFor(w: number, h: number): [HTMLCanvasElement, CanvasRende
 /** Точка на кривой Безье второго порядка. */
 export function quad(a: Pt, b: Pt, c: Pt, t: number): Pt {
   const u = 1 - t;
-  return { x: u * u * a.x + 2 * u * t * b.x + t * t * c.x, y: u * u * a.y + 2 * u * t * b.y + t * t * c.y };
+  return {
+    x: u * u * a.x + 2 * u * t * b.x + t * t * c.x,
+    y: u * u * a.y + 2 * u * t * b.y + t * t * c.y,
+  };
 }
 
 /** Точки кривой Безье второго порядка. */
@@ -67,12 +76,22 @@ export function ellipsePts(cx: number, cy: number, rx: number, ry: number, n = 2
 }
 
 /** Прямоугольник со скруглёнными, чуть неровными углами. */
-export function roundRectPts(pen: Pen, x: number, y: number, w: number, h: number, r: number): Pt[] {
+export function roundRectPts(
+  pen: Pen,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): Pt[] {
   const pts: Pt[] = [];
   const corner = (cx: number, cy: number, a0: number) => {
     for (let i = 0; i <= 4; i++) {
       const a = a0 + (i / 4) * (Math.PI / 2);
-      pts.push({ x: cx + Math.cos(a) * r + (pen.rng() - 0.5) * 0.6, y: cy + Math.sin(a) * r + (pen.rng() - 0.5) * 0.6 });
+      pts.push({
+        x: cx + Math.cos(a) * r + (pen.rng() - 0.5) * 0.6,
+        y: cy + Math.sin(a) * r + (pen.rng() - 0.5) * 0.6,
+      });
     }
   };
   corner(x + w - r, y + r, -Math.PI / 2);

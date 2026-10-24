@@ -31,47 +31,103 @@ export function drawLogShape(
   const body = roundRectPts(pen, cx - L / 2, cy - T / 2, L, T, T * 0.42);
   if (kind === 'birch') {
     const b = palette.birch;
-    pastelFill(x, pen, body, b.bark, -0.15, 1.3, { stroke: Math.max(2, T * 0.32), under: 0.75, tones: [b.bark, b.bark, mix(b.bark, b.inner, 0.3)], cross: 0.3 });
+    pastelFill(x, pen, body, b.bark, -0.15, 1.3, {
+      stroke: Math.max(2, T * 0.32),
+      under: 0.75,
+      tones: [b.bark, b.bark, mix(b.bark, b.inner, 0.3)],
+      cross: 0.3,
+    });
     // Чёрные чёрточки берёзы.
     const marks = Math.max(3, Math.round(L / (T * 0.55)));
     for (let i = 0; i < marks; i++) {
       const mx = cx - L / 2 + T * 0.4 + ((L - T * 0.9) * (i + pen.rng() * 0.6)) / marks;
       const my = cy + (pen.rng() - 0.5) * T * 0.5;
       const ml = T * (0.25 + pen.rng() * 0.35);
-      pastelStroke(x, pen, [{ x: mx - ml / 2, y: my }, { x: mx + ml / 2, y: my + (pen.rng() - 0.5) * T * 0.1 }], Math.max(1.4, T * 0.13), b.mark, 1, { taper: 0.5 });
+      pastelStroke(
+        x,
+        pen,
+        [
+          { x: mx - ml / 2, y: my },
+          { x: mx + ml / 2, y: my + (pen.rng() - 0.5) * T * 0.1 },
+        ],
+        Math.max(1.4, T * 0.13),
+        b.mark,
+        1,
+        { taper: 0.5 },
+      );
     }
     // Завиток отслоившейся коры.
     if (L > T * 2.5) {
       const kx = cx + (pen.rng() - 0.5) * L * 0.4;
-      chalkLine(x, pen, [{ x: kx, y: cy - T * 0.5 }, { x: kx + T * 0.18, y: cy - T * 0.72 }, { x: kx + T * 0.32, y: cy - T * 0.55 }], Math.max(1, T * 0.08), b.bark, false, 0.9);
+      chalkLine(
+        x,
+        pen,
+        [
+          { x: kx, y: cy - T * 0.5 },
+          { x: kx + T * 0.18, y: cy - T * 0.72 },
+          { x: kx + T * 0.32, y: cy - T * 0.55 },
+        ],
+        Math.max(1, T * 0.08),
+        b.bark,
+        false,
+        0.9,
+      );
     }
     // Торец.
     const end = ellipsePts(cx + L / 2 - T * 0.12, cy, T * 0.2, T * 0.46, 12);
-    pastelFill(x, pen, end, b.inner, 0.4, 1.2, { stroke: Math.max(1.6, T * 0.2), under: 0.8, cross: 0.2 });
+    pastelFill(x, pen, end, b.inner, 0.4, 1.2, {
+      stroke: Math.max(1.6, T * 0.2),
+      under: 0.8,
+      cross: 0.2,
+    });
   } else {
     const o = palette.oak;
-    pastelFill(x, pen, body, o.bark, -0.2, 1.3, { stroke: Math.max(2, T * 0.28), under: 0.75, tones: [o.bark, o.light, o.bark], cross: 0.35 });
+    pastelFill(x, pen, body, o.bark, -0.2, 1.3, {
+      stroke: Math.max(2, T * 0.28),
+      under: 0.75,
+      tones: [o.bark, o.light, o.bark],
+      cross: 0.35,
+    });
     // Волокна коры процарапаны.
     const fib: Pt[][] = [];
     for (let i = 0; i < 4; i++) {
       const yy = cy - T * 0.3 + (i / 3) * T * 0.6;
-      fib.push([{ x: cx - L / 2 + T * 0.3, y: yy + (pen.rng() - 0.5) * 2 }, { x: cx, y: yy + (pen.rng() - 0.5) * 3 }, { x: cx + L / 2 - T * 0.4, y: yy + (pen.rng() - 0.5) * 2 }]);
+      fib.push([
+        { x: cx - L / 2 + T * 0.3, y: yy + (pen.rng() - 0.5) * 2 },
+        { x: cx, y: yy + (pen.rng() - 0.5) * 3 },
+        { x: cx + L / 2 - T * 0.4, y: yy + (pen.rng() - 0.5) * 2 },
+      ]);
     }
     sgraffito(x, pen, fib, Math.max(1, T * 0.06));
     // Охристый торец с годовыми кольцами.
     const ex = cx + L / 2 - T * 0.15;
     const end = ellipsePts(ex, cy, T * 0.24, T * 0.5, 14);
-    pastelFill(x, pen, end, o.end, 0.3, 1.3, { stroke: Math.max(1.6, T * 0.2), under: 0.85, cross: 0.2 });
+    pastelFill(x, pen, end, o.end, 0.3, 1.3, {
+      stroke: Math.max(1.6, T * 0.2),
+      under: 0.85,
+      cross: 0.2,
+    });
     if (opts.endRings !== false) {
       for (let r = 1; r <= 2; r++) {
         const ring = ellipsePts(ex, cy, T * 0.24 * (r / 3), T * 0.5 * (r / 3), 10);
-        pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, T * 0.06), o.ring, 0.9, { taper: 0 });
+        pastelStroke(x, pen, ring.concat([ring[0]]), Math.max(1, T * 0.06), o.ring, 0.9, {
+          taper: 0,
+        });
       }
     }
   }
   if (opts.charred) {
     for (let i = 0; i < 3; i++) {
-      smudge(x, pen, cx + (pen.rng() - 0.5) * L * 0.6, cy + (pen.rng() - 0.3) * T * 0.4, T * 0.45, palette.paper, opts.charred, 0.6);
+      smudge(
+        x,
+        pen,
+        cx + (pen.rng() - 0.5) * L * 0.6,
+        cy + (pen.rng() - 0.3) * T * 0.4,
+        T * 0.45,
+        palette.paper,
+        opts.charred,
+        0.6,
+      );
     }
   }
   if (opts.chalk !== false) {
@@ -94,7 +150,19 @@ function logTex(rc: RC, kind: 'birch' | 'oak', catching: boolean): HTMLCanvasEle
         for (let i = 0; i < 3; i++) {
           const fx = c.width / 2 + (i - 1) * L * 0.25 + (pen.rng() - 0.5) * 4;
           const fy = c.height / 2 - T * 0.35;
-          pastelStroke(x, pen, [{ x: fx, y: fy }, { x: fx + 2, y: fy - T * 0.35 }, { x: fx - 1, y: fy - T * 0.6 }], Math.max(2, T * 0.2), i === 1 ? palette.fire.mid : palette.fire.outer, 0.95, { kind: 'scribble', taper: 0.9 });
+          pastelStroke(
+            x,
+            pen,
+            [
+              { x: fx, y: fy },
+              { x: fx + 2, y: fy - T * 0.35 },
+              { x: fx - 1, y: fy - T * 0.6 },
+            ],
+            Math.max(2, T * 0.2),
+            i === 1 ? palette.fire.mid : palette.fire.outer,
+            0.95,
+            { kind: 'scribble', taper: 0.9 },
+          );
         }
       }
       return c;
@@ -126,9 +194,21 @@ function embersTex(rc: RC): HTMLCanvasElement[] {
       placed.sort((a, b) => a.y - b.y);
       for (const p of placed) {
         const shape = blob(pen.rng, p.w, p.h, { cx: p.x, cy: p.y, irregularity: 0.22, points: 7 });
-        pastelFill(x, pen, shape, palette.ember.dark, -0.4, 1.3, { stroke: Math.max(2, p.w * 0.25), under: 0.7, tones: [palette.ember.dark, palette.ember.hot, palette.ember.dark] });
-        const hot = blob(pen.rng, p.w * 0.5, p.h * 0.45, { cx: p.x - p.w * 0.1, cy: p.y - p.h * 0.12, irregularity: 0.3 });
-        pastelFill(x, pen, hot, palette.ember.hot, -0.3, 1.2, { stroke: Math.max(1.6, p.w * 0.18), under: 0.6, tones: [palette.ember.hot, palette.fire.mid] });
+        pastelFill(x, pen, shape, palette.ember.dark, -0.4, 1.3, {
+          stroke: Math.max(2, p.w * 0.25),
+          under: 0.7,
+          tones: [palette.ember.dark, palette.ember.hot, palette.ember.dark],
+        });
+        const hot = blob(pen.rng, p.w * 0.5, p.h * 0.45, {
+          cx: p.x - p.w * 0.1,
+          cy: p.y - p.h * 0.12,
+          irregularity: 0.3,
+        });
+        pastelFill(x, pen, hot, palette.ember.hot, -0.3, 1.2, {
+          stroke: Math.max(1.6, p.w * 0.18),
+          under: 0.6,
+          tones: [palette.ember.hot, palette.fire.mid],
+        });
         // Процарапанные трещины.
         const cracks: Pt[][] = [];
         for (let k = 0; k < 2; k++) {
@@ -141,7 +221,14 @@ function embersTex(rc: RC): HTMLCanvasElement[] {
         }
         sgraffito(x, pen, cracks, Math.max(1, C * 0.009));
       }
-      crumbs(x, pen, { x: W * 0.2, y: H * 0.3, w: W * 0.6, h: H * 0.5 }, palette.fire.core, 10, C * 0.012);
+      crumbs(
+        x,
+        pen,
+        { x: W * 0.2, y: H * 0.3, w: W * 0.6, h: H * 0.5 },
+        palette.fire.core,
+        10,
+        C * 0.012,
+      );
       return c;
     },
     rc.seed * 17 + 3,
@@ -168,7 +255,14 @@ export function drawFx(rc: RC): Tex[] {
     const s = Math.ceil(C * (0.06 + i * 0.02));
     const [c, x] = canvasFor(s, s);
     crumbs(x, pen, { x: s * 0.3, y: s * 0.3, w: s * 0.4, h: s * 0.4 }, palette.spark, 3, s * 0.28);
-    crumbs(x, pen, { x: s * 0.4, y: s * 0.4, w: s * 0.2, h: s * 0.2 }, palette.fire.core, 2, s * 0.18);
+    crumbs(
+      x,
+      pen,
+      { x: s * 0.4, y: s * 0.4, w: s * 0.2, h: s * 0.2 },
+      palette.fire.core,
+      2,
+      s * 0.18,
+    );
     out.push(tex(K.spark(i), c));
   }
   {
@@ -182,7 +276,14 @@ export function drawFx(rc: RC): Tex[] {
     const s = Math.ceil(C * 0.32);
     const [c, x] = canvasFor(s, s);
     smudge(x, pen, s / 2, s / 2, s * 0.42, palette.ground.light, 0.8, 0.7);
-    crumbs(x, pen, { x: s * 0.2, y: s * 0.3, w: s * 0.6, h: s * 0.4 }, palette.forest.fern, 5, s * 0.05);
+    crumbs(
+      x,
+      pen,
+      { x: s * 0.2, y: s * 0.3, w: s * 0.6, h: s * 0.4 },
+      palette.forest.fern,
+      5,
+      s * 0.05,
+    );
     out.push(tex(K.dust, c));
   }
   {
@@ -195,9 +296,30 @@ export function drawFx(rc: RC): Tex[] {
   for (let i = 0; i < 3; i++) {
     const s = Math.ceil(C * 0.16);
     const [c, x] = canvasFor(s, s);
-    const leaf = blob(pen.rng, s * 0.8, s * 0.36, { cx: s / 2, cy: s / 2, irregularity: 0.1, points: 8, rot: 0.4 });
-    pastelFill(x, pen, leaf, leafCols[i], 0.4, 1.3, { stroke: Math.max(1.5, s * 0.14), under: 0.8, cross: 0.2 });
-    chalkLine(x, pen, [{ x: s * 0.18, y: s * 0.62 }, { x: s * 0.8, y: s * 0.38 }], Math.max(0.8, s * 0.04), palette.chalk, false, 0.5);
+    const leaf = blob(pen.rng, s * 0.8, s * 0.36, {
+      cx: s / 2,
+      cy: s / 2,
+      irregularity: 0.1,
+      points: 8,
+      rot: 0.4,
+    });
+    pastelFill(x, pen, leaf, leafCols[i], 0.4, 1.3, {
+      stroke: Math.max(1.5, s * 0.14),
+      under: 0.8,
+      cross: 0.2,
+    });
+    chalkLine(
+      x,
+      pen,
+      [
+        { x: s * 0.18, y: s * 0.62 },
+        { x: s * 0.8, y: s * 0.38 },
+      ],
+      Math.max(0.8, s * 0.04),
+      palette.chalk,
+      false,
+      0.5,
+    );
     out.push(tex(K.leaf(i), c));
   }
   {

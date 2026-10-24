@@ -42,7 +42,7 @@ export class GameAudio {
     for (const e of events) {
       switch (e.type) {
         case 'STEP':
-          this.play('step', (e.to & 1 ? 0.25 : -0.25));
+          this.play('step', e.to & 1 ? 0.25 : -0.25);
           break;
         case 'PICKUP':
         case 'SWAP':
@@ -140,7 +140,11 @@ export class GameAudio {
       this.birdAcc += dt * dawn * 1.4;
       while (this.birdAcc >= 1) {
         this.birdAcc -= 1;
-        playSfx(this.m, 'chirp', { pan: Math.random() * 1.6 - 0.8, pitch: jitter(), gain: 0.6 + dawn * 0.4 });
+        playSfx(this.m, 'chirp', {
+          pan: Math.random() * 1.6 - 0.8,
+          pitch: jitter(),
+          gain: 0.6 + dawn * 0.4,
+        });
       }
     }
   }

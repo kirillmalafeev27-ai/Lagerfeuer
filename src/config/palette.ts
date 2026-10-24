@@ -14,7 +14,13 @@ export const palette = {
   sky: { night: '#1b1f45', high: '#2d2a63', star: '#e9e6ff', moon: '#fff3c4' },
   dawn: { violet: '#6b5aa8', pink: '#ff9fb2', peach: '#ffc49b', sun: '#ffe9a8' },
   forest: { trunk: '#3a3352', fir: '#2b4a4a', firLight: '#3f6b63', fern: '#4f6b3e' },
-  ground: { base: '#6e5a45', light: '#93795a', dark: '#4a3b2d', needles: '#3d4f3a', root: '#5a4532' },
+  ground: {
+    base: '#6e5a45',
+    light: '#93795a',
+    dark: '#4a3b2d',
+    needles: '#3d4f3a',
+    root: '#5a4532',
+  },
   stone: { base: '#7c8296', light: '#aab1c4', dark: '#4f5466' },
 
   // огонь — тёплые цвета только у огня, углей, искр и фонаря

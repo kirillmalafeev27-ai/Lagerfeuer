@@ -73,19 +73,51 @@ function filt(ctx: Ctx, type: BiquadFilterType, f: number, q = 1): BiquadFilterN
 }
 
 /** Шумовой всплеск через фильтр. */
-function burst(ctx: Ctx, m: Mixer, out: AudioNode, t: number, type: BiquadFilterType, f: number, q: number, a: number, d: number, peak: number): void {
+function burst(
+  ctx: Ctx,
+  m: Mixer,
+  out: AudioNode,
+  t: number,
+  type: BiquadFilterType,
+  f: number,
+  q: number,
+  a: number,
+  d: number,
+  peak: number,
+): void {
   const n = noiseSrc(ctx, m, t, a + d);
   if (!n) return;
   const g = ctx.createGain();
   env(g, t, a, peak, d);
-  n.connect(filt(ctx, type, f, q)).connect(g).connect(out);
+  n.connect(filt(ctx, type, f, q))
+    .connect(g)
+    .connect(out);
 }
 
 /** Щелчки потрескивания. */
-function clicks(ctx: Ctx, m: Mixer, out: AudioNode, t: number, count: number, spread: number, peak: number): void {
+function clicks(
+  ctx: Ctx,
+  m: Mixer,
+  out: AudioNode,
+  t: number,
+  count: number,
+  spread: number,
+  peak: number,
+): void {
   for (let i = 0; i < count; i++) {
     const tt = t + Math.random() * spread;
-    burst(ctx, m, out, tt, 'bandpass', 1800 + Math.random() * 3000, 2.5, 0.001, 0.02 + Math.random() * 0.03, peak * (0.4 + Math.random() * 0.6));
+    burst(
+      ctx,
+      m,
+      out,
+      tt,
+      'bandpass',
+      1800 + Math.random() * 3000,
+      2.5,
+      0.001,
+      0.02 + Math.random() * 0.03,
+      peak * (0.4 + Math.random() * 0.6),
+    );
   }
 }
 
@@ -212,7 +244,9 @@ export function playSfx(m: Mixer, name: Sfx, o: PlayOpts = {}): void {
       o1.frequency.exponentialRampToValueAtTime(600 * p, t + 0.28);
       const g = ctx.createGain();
       env(g, t, 0.01, 0.3 * G, 0.26);
-      o1.connect(filt(ctx, 'bandpass', 1100, 0.8)).connect(g).connect(out);
+      o1.connect(filt(ctx, 'bandpass', 1100, 0.8))
+        .connect(g)
+        .connect(out);
       break;
     }
     case 'gust': {
@@ -277,12 +311,15 @@ export function playSfx(m: Mixer, name: Sfx, o: PlayOpts = {}): void {
       const o1 = tone(ctx, 'square', 110 * p, t, 0.14);
       const g = ctx.createGain();
       env(g, t, 0.004, 0.18 * G, 0.12);
-      o1.connect(filt(ctx, 'lowpass', 500, 0.8)).connect(g).connect(out);
+      o1.connect(filt(ctx, 'lowpass', 500, 0.8))
+        .connect(g)
+        .connect(out);
       burst(ctx, m, out, t, 'lowpass', 350, 0.7, 0.003, 0.1, 0.2 * G);
       break;
     }
     case 'clap': {
-      for (const dt of [0, 0.13]) burst(ctx, m, out, t + dt, 'bandpass', 1300 * p, 1.1, 0.002, 0.06, 0.6 * G);
+      for (const dt of [0, 0.13])
+        burst(ctx, m, out, t + dt, 'bandpass', 1300 * p, 1.1, 0.002, 0.06, 0.6 * G);
       break;
     }
     case 'rooster': {

@@ -76,7 +76,8 @@ function makePlanWith(chooseWood: (s: GameState) => WoodKind, initialKey = -1): 
     } else if (h.cell === s.pile && key !== decidedKey) {
       decidedKey = key;
       const k = chooseWood(s);
-      if (k !== h.hands.kind || k !== s.selectedWood) apply(s, { type: 'SELECT_WOOD', kind: k }, ev);
+      if (k !== h.hands.kind || k !== s.selectedWood)
+        apply(s, { type: 'SELECT_WOOD', kind: k }, ev);
     }
     if (h.hands.kind === null) {
       if (!h.intent || h.intent.kind !== 'pile') apply(s, { type: 'SET_INTENT', kind: 'pile' }, ev);
@@ -107,7 +108,9 @@ function applyOption(s: GameState, o: Option, ev: GameEvent[]): void {
 
 function sameOption(a: Option | null, b: Option): boolean {
   if (!a || a.kind !== b.kind) return false;
-  return a.kind === 'feed' ? a.fire === (b as { fire: Side }).fire : a.wood === (b as { wood: WoodKind }).wood;
+  return a.kind === 'feed'
+    ? a.fire === (b as { fire: Side }).fire
+    : a.wood === (b as { wood: WoodKind }).wood;
 }
 
 /** Что сделал бы смешанный бот из этого состояния. */
@@ -131,7 +134,8 @@ export function makePlanner(rng: Rng): PlanFn {
     if (h.intent && !h.autoIntent) return;
     const options: Option[] = [];
     if (h.hands.kind !== null) {
-      for (const f of s.fires) if (fits(f, h.hands.kind)) options.push({ kind: 'feed', fire: f.side });
+      for (const f of s.fires)
+        if (fits(f, h.hands.kind)) options.push({ kind: 'feed', fire: f.side });
     }
     options.push({ kind: 'pile', wood: 'birch' });
     if (s.level.oak) options.push({ kind: 'pile', wood: 'oak' });

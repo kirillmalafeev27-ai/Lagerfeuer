@@ -28,7 +28,8 @@ const NO_GRAIN = new Set(['paper', 'brushes', 'hud']);
 /** Последний проход: зерно бумаги по всей текстуре (у вариантов кипения — своё). */
 export function finalizeTex(recipe: string, t: Tex, index: number, seed: number): void {
   const density = t.grain ?? (NO_GRAIN.has(recipe) ? 0 : kitTooth());
-  if (density > 0) grainPass(t.canvas, mulberry32(seed * 977 + index * 131 + recipe.length), density);
+  if (density > 0)
+    grainPass(t.canvas, mulberry32(seed * 977 + index * 131 + recipe.length), density);
 }
 
 export const RECIPES: Recipe[] = [
@@ -65,7 +66,11 @@ export interface GenTarget {
  * Сгенерировать все текстуры и зарегистрировать их. Между рецептами отдаёт кадр,
  * чтобы экран загрузки оставался живым.
  */
-export async function generateArt(target: GenTarget, rc: RC, onProgress?: (p: GenProgress) => void): Promise<number> {
+export async function generateArt(
+  target: GenTarget,
+  rc: RC,
+  onProgress?: (p: GenProgress) => void,
+): Promise<number> {
   const t0 = performance.now();
   const list = RECIPES.filter((r) => !r.labOnly);
   let done = 0;
