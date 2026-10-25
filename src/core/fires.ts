@@ -104,7 +104,7 @@ export function projectFire(s: GameState, side: Side, gusts: readonly Gust[]): P
       t += dtZero;
       fuel = 0;
       if (catching !== null) catching -= dtZero;
-      embers = balance.emberA;
+      embers = s.emberA;
       if (tEmbers === Infinity) tEmbers = t;
       continue;
     }

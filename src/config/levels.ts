@@ -15,6 +15,16 @@ export interface WindConfig {
   dur: number;
 }
 
+/**
+ * Ночь с заданиями генератора (формат Morskoy). Она короче в единицах A: потолок по времени
+ * (balance.nightMaxSecGenerated), а задание-предложение читается долго. Поэтому костры горят
+ * медленнее, а дров на старте меньше — напряжение с первых минут, и дуб снова окупается.
+ */
+export interface GeneratedNight {
+  slotA: number;
+  startFuel: readonly [number, number];
+}
+
 export interface LevelConfig {
   id: LevelId;
   nightA: number;
@@ -25,10 +35,14 @@ export interface LevelConfig {
   open: number;
   hints: HintSet;
   startFuel: readonly [number, number];
+  generated: GeneratedNight;
 }
 
 const START_FUEL: readonly [number, number] = [1.2, 2.4];
 const START_FUEL_L1: readonly [number, number] = [1.5, 2.5];
+/** Стартовое топливо ночей с заданиями генератора: 70% от обычного. */
+const GEN_FUEL: readonly [number, number] = [0.84, 1.68];
+const GEN_FUEL_L1: readonly [number, number] = [1.05, 1.75];
 
 export const levels: readonly LevelConfig[] = [
   {
@@ -41,6 +55,7 @@ export const levels: readonly LevelConfig[] = [
     open: 0,
     hints: 'all',
     startFuel: START_FUEL_L1,
+    generated: { slotA: 13.8, startFuel: GEN_FUEL_L1 },
   },
   {
     id: 2,
@@ -52,6 +67,7 @@ export const levels: readonly LevelConfig[] = [
     open: 0,
     hints: 'all',
     startFuel: START_FUEL,
+    generated: { slotA: 13.2, startFuel: GEN_FUEL },
   },
   {
     id: 3,
@@ -63,6 +79,7 @@ export const levels: readonly LevelConfig[] = [
     open: 1,
     hints: 'all',
     startFuel: START_FUEL,
+    generated: { slotA: 11.5, startFuel: GEN_FUEL },
   },
   {
     id: 4,
@@ -74,6 +91,7 @@ export const levels: readonly LevelConfig[] = [
     open: 1,
     hints: 'targetRing',
     startFuel: START_FUEL,
+    generated: { slotA: 11.3, startFuel: GEN_FUEL },
   },
   {
     id: 5,
@@ -85,6 +103,7 @@ export const levels: readonly LevelConfig[] = [
     open: 1,
     hints: 'targetRing',
     startFuel: START_FUEL,
+    generated: { slotA: 11.0, startFuel: GEN_FUEL },
   },
   {
     id: 6,
@@ -96,6 +115,7 @@ export const levels: readonly LevelConfig[] = [
     open: 2,
     hints: 'oak',
     startFuel: START_FUEL,
+    generated: { slotA: 10.8, startFuel: GEN_FUEL },
   },
   {
     id: 'inf',
@@ -107,6 +127,7 @@ export const levels: readonly LevelConfig[] = [
     open: 2,
     hints: 'none',
     startFuel: START_FUEL,
+    generated: { slotA: 10.0, startFuel: GEN_FUEL },
   },
 ];
 
@@ -116,6 +137,12 @@ export function levelById(id: LevelId): LevelConfig {
   const l = levels.find((x) => x.id === id);
   if (!l) throw new Error(`unknown level ${String(id)}`);
   return l;
+}
+
+/** Уровень для ночи: с заданиями генератора — свои slotA и стартовое топливо. */
+export function levelFor(id: LevelId, generated: boolean): LevelConfig {
+  const l = levelById(id);
+  return generated ? { ...l, slotA: l.generated.slotA, startFuel: l.generated.startFuel } : l;
 }
 
 export function levelIndex(id: LevelId): number {

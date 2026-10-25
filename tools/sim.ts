@@ -1,11 +1,21 @@
 // Симуляция ночей ботами на настоящем движке правил, без графики (раздел 14).
 // npm run sim -- --level 4 --runs 2000 [--bot mixed|birch|oak|planner|all] [--tmed 5] [--p 0.8]
+//   [--mode bank|gen] [--cefr B1] [--history 20] [--sigma 0.65] [--wrong 1.8] [--assist 1]
+// Без --mode игра знает темп игрока точно (σ = 0.5) — так проверяются цели раздела 14 (--check).
+// Цели ночей с заданиями генератора: --check-gen.
+// С --mode игрок отвечает по своей модели (--tmed, --sigma, --p), а темп ночи игра выставляет
+// сама, как в игре: учётом темпа вида вопросов по --history его прошлым ответам (0 — первая
+// ночь, значения по умолчанию), с поправкой на разброс, запасом и потолком длины ночи.
 
+import { balance } from '../src/config/balance.ts';
 import { type LevelId, LEVEL_IDS } from '../src/config/levels.ts';
 import { type BotName, makeBot } from '../src/core/bots.ts';
-import { generateLevel } from '../src/core/levelGen.ts';
+import { type Pace, generateLevel } from '../src/core/levelGen.ts';
 import { hashSeed, mulberry32 } from '../src/core/rng.ts';
-import { playNight } from '../src/core/simulate.ts';
+import { type Player, playNight, sampleAnswerSec } from '../src/core/simulate.ts';
+import { type QuestionKind, paceConfigFor } from '../src/game/pacing.ts';
+import { PaceTracker } from '../src/shared/pace.ts';
+import type { KeyValueStorage } from '../src/shared/storage.ts';
 
 interface Args {
   levels: LevelId[];
@@ -16,6 +26,38 @@ interface Args {
   seed: number;
   plannerRuns: number;
   json: boolean;
+  /** Реалистичная симуляция: модель игрока и учёт темпа, как в игре. */
+  real: SimOptions | null;
+}
+
+export interface SimOptions {
+  /** Вид вопросов: учёт темпа и потолок ночи — как в игре. */
+  mode: QuestionKind;
+  cefr: string;
+  /** Сколько прошлых ответов игрока знает учёт темпа: 0 — первая ночь. */
+  history: number;
+  sigma: number;
+  /** Сколько виден верный вариант после ошибки, секунд. */
+  wrongSec: number;
+  /** Помощь после неудач: 0, 1 или 2 ступени (balance.assist). */
+  assist: number;
+}
+
+function memoryStorage(): KeyValueStorage {
+  const m = new Map<string, string>();
+  return { get: (k) => m.get(k) ?? null, set: (k, v) => void m.set(k, v) };
+}
+
+/** Темп, который игра выставит ночи, зная `history` прошлых ответов игрока. */
+export function gamePaceFor(seed: number, player: Player, o: SimOptions): Pace {
+  const tracker = new PaceTracker(memoryStorage(), paceConfigFor(o.mode, o.cefr));
+  const rng = mulberry32(hashSeed(seed, 0x9ace));
+  for (let i = 0; i < o.history; i++) {
+    const t = sampleAnswerSec(rng, player.tMed, player.sigma);
+    tracker.record(t * 1000, rng() < player.p);
+  }
+  const snap = tracker.snapshot();
+  return { tMed: snap.tMed, p: snap.p };
 }
 
 function parseArgs(argv: string[]): Args {
@@ -32,15 +74,31 @@ function parseArgs(argv: string[]): Args {
   const bots: BotName[] =
     b === 'all' ? ['mixed', 'birch', 'oak', 'planner'] : (b.split(',') as BotName[]);
   const runs = Number(get('runs') ?? 1000);
+  const mode = get('mode');
+  const gen = mode === 'gen';
   return {
     levels,
     runs,
     bots,
-    tMed: Number(get('tmed') ?? 5),
-    p: Number(get('p') ?? 0.8),
+    tMed: Number(get('tmed') ?? (gen ? 12 : 5)),
+    p: Number(get('p') ?? (gen ? 0.7 : 0.8)),
     seed: Number(get('seed') ?? 1),
     plannerRuns: Number(get('planner-runs') ?? Math.min(runs, 300)),
     json: argv.includes('--json'),
+    real:
+      mode === undefined
+        ? null
+        : {
+            mode: gen ? 'generated' : 'bank',
+            cefr: get('cefr') ?? 'B1',
+            history: Number(get('history') ?? 20),
+            sigma: Number(get('sigma') ?? (gen ? 0.65 : 0.5)),
+            wrongSec: Number(
+              get('wrong') ??
+                (gen ? balance.wrongFeedbackGeneratedMs : balance.wrongFeedbackMs) / 1000,
+            ),
+            assist: Number(get('assist') ?? 0),
+          },
   };
 }
 
@@ -57,6 +115,11 @@ export interface BotReport {
   oak: number;
   embers: number;
   stretched: number;
+  /** Средняя длина ночи: единиц A и секунд. */
+  nightA: number;
+  nightSec: number;
+  /** Ответов за ночь в среднем. */
+  answers: number;
 }
 
 export function simulate(
@@ -66,6 +129,7 @@ export function simulate(
   tMed: number,
   p: number,
   seed: number,
+  real: SimOptions | null = null,
 ): BotReport {
   const rep: BotReport = {
     level,
@@ -80,16 +144,30 @@ export function simulate(
     oak: 0,
     embers: 0,
     stretched: 0,
+    nightA: 0,
+    nightSec: 0,
+    answers: 0,
   };
   const levelNum = level === 'inf' ? 99 : level;
+  const player: Player | undefined = real
+    ? { tMed, sigma: real.sigma, p, wrongSec: real.wrongSec }
+    : undefined;
   for (let i = 0; i < runs; i++) {
     const s0 = hashSeed(seed, levelNum, i);
-    const gen = generateLevel(level, s0, { tMed, p }, { warn: () => {} });
+    const pace = real && player ? gamePaceFor(s0, player, real) : { tMed, p };
+    const gen = generateLevel(level, s0, pace, {
+      warn: () => {},
+      generated: real?.mode === 'generated',
+      assist: real?.assist ?? 0,
+    });
     if (gen.stretched) rep.stretched++;
     const s = gen.state;
     const rng = mulberry32(hashSeed(s0, 0xb07));
     const plan = makeBot(bot, mulberry32(hashSeed(s0, 0x91a)));
-    playNight(s, plan, rng);
+    playNight(s, plan, rng, { player });
+    rep.nightA += s.nightA;
+    rep.nightSec += s.nightA * s.A;
+    rep.answers += s.stats.correct + s.stats.wrong;
     if (s.status === 'won') rep.win++;
     rep.stars[s.stars]++;
     if (s.stats.cause) {
@@ -119,6 +197,7 @@ function printReport(r: BotReport): void {
         ? `lost: near ${pct(r.causeNear, lost)} far ${pct(r.causeFar, lost)} gust ${pct(r.causeGust, lost)}`
         : 'lost: —',
       `birch ${(r.birch / n).toFixed(1)} oak ${(r.oak / n).toFixed(1)} embers ${(r.embers / n).toFixed(2)}`,
+      `night ${(r.nightA / n).toFixed(1)}A ${(r.nightSec / n).toFixed(0)}s, ${(r.answers / n).toFixed(0)} answers`,
       r.stretched ? `stretched ${r.stretched}` : '',
     ].join(' | '),
   );
@@ -202,14 +281,118 @@ export function checkTargets(runs: number, plannerRuns: number, seed: number): b
   return ok;
 }
 
+/** Реалистичная симуляция ночи с заданиями генератора. */
+export function genOptions(o: Partial<SimOptions> = {}): SimOptions {
+  return {
+    mode: 'generated',
+    cefr: 'B1',
+    history: 20,
+    sigma: 0.65,
+    wrongSec: balance.wrongFeedbackGeneratedMs / 1000,
+    assist: 0,
+    ...o,
+  };
+}
+
+/**
+ * Цели для ночей с заданиями генератора (DECISIONS.md, «Сложность с заданиями генератора»).
+ * Эталон — типичный ученик: 12 с на задание, σ 0.65, верно 70%; игра знает 20 его ответов.
+ * Цели раздела 14 — с поправкой «лучше проходимо, чем слишком сложно».
+ */
+export function checkGenerated(runs: number, plannerRuns: number, seed: number): boolean {
+  const range: Record<string, [number, number]> = {
+    '1': [97, 100],
+    '2': [95, 100],
+    '3': [88, 97],
+    '4': [80, 90],
+    '5': [76, 88],
+    '6': [72, 85],
+    inf: [60, 75],
+  };
+  const results: Array<{ name: string; ok: boolean; detail: string }> = [];
+  const add = (name: string, ok: boolean, detail: string) => results.push({ name, ok, detail });
+  const win = (r: BotReport) => (100 * r.win) / r.runs;
+  const s3 = (r: BotReport) => (100 * r.stars[3]) / r.runs;
+  const typical = genOptions();
+  for (const level of LEVEL_IDS) {
+    const m = simulate(level, 'mixed', runs, 12, 0.7, seed, typical);
+    const [lo, hi] = range[String(level)];
+    add(
+      `gen mixed L${String(level)} in ${lo}–${hi}%`,
+      win(m) >= lo && win(m) <= hi,
+      `${win(m).toFixed(1)}%`,
+    );
+    if (level !== 1 && level !== 2 && level !== 3) {
+      const b = simulate(level, 'birch', runs, 12, 0.7, seed, typical);
+      add(
+        `gen birch-only L${String(level)} ≥8 pts below mixed`,
+        win(b) <= win(m) - 8,
+        `${win(b).toFixed(1)}% vs ${win(m).toFixed(1)}%`,
+      );
+      const pl = simulate(level, 'planner', plannerRuns, 12, 0.7, seed, typical);
+      add(
+        `gen planner L${String(level)} ≥ mixed − 4, ★★★ ≥ 10%`,
+        win(pl) >= win(m) - 4 && s3(pl) >= 10,
+        `${win(pl).toFixed(1)}% vs ${win(m).toFixed(1)}%, ★★★ ${s3(pl).toFixed(1)}%`,
+      );
+    }
+  }
+  // Знание окупается: при том же темпе верные ответы решают.
+  const p6 = simulate(6, 'mixed', runs, 12, 0.6, seed, typical);
+  const p8 = simulate(6, 'mixed', runs, 12, 0.8, seed, typical);
+  add(
+    'gen L6: p=0.8 ≥ p=0.6 + 15 pts',
+    win(p8) >= win(p6) + 15,
+    `${win(p8).toFixed(1)}% vs ${win(p6).toFixed(1)}%`,
+  );
+  // Первая ночь (значения по умолчанию) проходима и для медленного новичка A1.
+  for (const level of [1, 2, 3] as const) {
+    const f = simulate(
+      level,
+      'mixed',
+      runs,
+      15,
+      0.65,
+      seed,
+      genOptions({ cefr: 'A1', history: 0 }),
+    );
+    add(`gen first night A1, 15 s, L${level} ≥ 88%`, win(f) >= 88, `${win(f).toFixed(1)}%`);
+  }
+  // Помощь после неудач заметна у слабого ученика.
+  const weak = genOptions({ sigma: 0.7 });
+  const w0 = simulate(6, 'mixed', runs, 15, 0.6, seed, weak);
+  const w2 = simulate(6, 'mixed', runs, 15, 0.6, seed, { ...weak, assist: 2 });
+  add(
+    'gen weak L6: assist 2 ≥ +8 pts',
+    win(w2) >= win(w0) + 8,
+    `${win(w2).toFixed(1)}% vs ${win(w0).toFixed(1)}%`,
+  );
+  let ok = true;
+  for (const r of results) {
+    console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name.padEnd(46)} ${r.detail}`);
+    ok &&= r.ok;
+  }
+  console.log(ok ? 'all generated-night targets met' : 'some generated-night targets FAILED');
+  return ok;
+}
+
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain && process.argv.includes('--check')) {
   const a = parseArgs(process.argv.slice(2));
   const ok = checkTargets(a.runs, a.plannerRuns, a.seed);
   process.exit(ok ? 0 : 1);
+} else if (isMain && process.argv.includes('--check-gen')) {
+  const a = parseArgs(process.argv.slice(2));
+  const ok = checkGenerated(a.runs, a.plannerRuns, a.seed);
+  process.exit(ok ? 0 : 1);
 } else if (isMain) {
   const a = parseArgs(process.argv.slice(2));
-  console.log(`sim: T_med=${a.tMed}s p=${a.p} runs=${a.runs} (planner ${a.plannerRuns})`);
+  const real = a.real;
+  console.log(
+    real
+      ? `sim: player T_med=${a.tMed}s σ=${real.sigma} p=${a.p}; pace: ${real.mode === 'generated' ? `generator ${real.cefr}` : 'bank'}, ${real.history ? `${real.history} past answers` : 'first night'}${real.assist ? `, assist ${real.assist}` : ''}; runs=${a.runs} (planner ${a.plannerRuns})`
+      : `sim: T_med=${a.tMed}s p=${a.p} runs=${a.runs} (planner ${a.plannerRuns})`,
+  );
   const all: BotReport[] = [];
   for (const level of a.levels) {
     for (const bot of a.bots) {
@@ -222,6 +405,7 @@ if (isMain && process.argv.includes('--check')) {
         a.tMed,
         a.p,
         a.seed,
+        a.real,
       );
       all.push(r);
       if (!a.json) {

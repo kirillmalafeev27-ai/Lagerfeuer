@@ -3,6 +3,17 @@
 import { type LevelConfig, type LevelId, levels } from '../../config/levels.ts';
 import { ru } from '../../i18n/ru.ts';
 import { tipsRu } from '../../i18n/tips.ru.ts';
+import type { AiStatus } from '../../shared/questions/AiQuestionProvider.ts';
+import {
+  CEFR_LEVELS,
+  type CefrLevel,
+  GRAMMAR_GROUPS,
+  LEXICAL_TOPICS,
+  MAX_GRAMMAR_TOPICS,
+  type QuizConfig,
+  VOCAB_TOPICS,
+  isVocabTopic,
+} from '../../shared/questions/topics.ts';
 import { iconLog, iconStar } from '../icons.ts';
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -41,7 +52,15 @@ export function loadingScreen(): { root: HTMLElement; progress(p: number): void 
   return { root, progress: (p) => (fill.style.width = `${Math.round(p * 100)}%`) };
 }
 
-export function menuScreen(h: { onPlay(): void; onSettings(): void }): HTMLElement {
+/**
+ * Меню. quiz — если источник вопросов умеет выбирать темы (ИИ-генерация): тогда под «Играть»
+ * подпись с выбранными темами, а «Вопросы» и «Настройки» стоят в один ряд.
+ */
+export function menuScreen(h: {
+  onPlay(): void;
+  onSettings(): void;
+  quiz?: { summary: string; onOpen(): void };
+}): HTMLElement {
   const root = screen('is-clear');
   const box = el('div', 'bf-menu');
   const title = el('h1', 'bf-title', ru.title);
@@ -50,10 +69,182 @@ export function menuScreen(h: { onPlay(): void; onSettings(): void }): HTMLEleme
   box.append(title, sub);
   const play = button(ru.menu.play, 'is-primary', h.onPlay);
   box.appendChild(play);
-  box.appendChild(button(ru.menu.settings, '', h.onSettings));
+  if (h.quiz) {
+    const line = el('p', 'bf-quiz-summary', h.quiz.summary);
+    line.lang = 'de';
+    box.appendChild(line);
+    const row = el('div', 'bf-menu-row');
+    row.append(button(ru.menu.quiz, '', h.quiz.onOpen), button(ru.menu.settings, '', h.onSettings));
+    box.appendChild(row);
+  } else box.appendChild(button(ru.menu.settings, '', h.onSettings));
   box.appendChild(el('p', 'bf-hint', ru.menu.hint));
   root.appendChild(box);
   setTimeout(() => play.focus(), 50);
+  return root;
+}
+
+/**
+ * Выбор тем вопросов — шаги меню Morskoy в одной карточке: уровень, лексическая тема, темы
+ * (до пяти, они чередуются: свои наборы слов и грамматика), слот Wortstellung и аудирование.
+ */
+export function quizScreen(
+  initial: QuizConfig | null,
+  status: Promise<AiStatus>,
+  h: { onDone(config: QuizConfig): void; onBank(): void; onCancel(): void },
+): HTMLElement {
+  const t = ru.quiz;
+  const cur: QuizConfig = initial
+    ? { ...initial, grammarTopics: [...initial.grammarTopics] }
+    : { level: 'A2', lexicalTopic: null, grammarTopics: [], wortstellung: false, listening: false };
+  const root = screen('is-dim bf-quiz-screen');
+  root.setAttribute('role', 'dialog');
+  root.setAttribute('aria-modal', 'true');
+  root.setAttribute('aria-label', t.title);
+  const sheet = el('div', 'bf-sheet bf-quiz');
+  sheet.append(el('h2', 'bf-h2', t.title), el('p', 'bf-quiz-intro', t.intro));
+  const note = el('p', 'bf-note bf-quiz-status', t.checking);
+  note.setAttribute('role', 'status');
+  sheet.appendChild(note);
+  void status.then((st) => {
+    note.textContent = !st.available ? t.noServer : !st.generationConfigured ? t.noKey : '';
+  });
+
+  /** Группа кнопок-радио. */
+  const radio = <T extends string | null>(
+    label: string,
+    options: Array<[T, string]>,
+    value: () => T,
+    set: (v: T) => void,
+  ): HTMLElement => {
+    const group = el('div', 'bf-tags');
+    group.setAttribute('role', 'radiogroup');
+    group.setAttribute('aria-label', label);
+    const buttons = options.map(([v, text]) => {
+      const b = el('button', 'bf-tag', text);
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      b.addEventListener('click', () => {
+        set(v);
+        sync();
+      });
+      group.appendChild(b);
+      return { b, v };
+    });
+    const sync = () => {
+      for (const { b, v } of buttons) {
+        const on = v === value();
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', String(on));
+      }
+    };
+    sync();
+    return group;
+  };
+
+  const levelGroup = radio<CefrLevel>(
+    t.level,
+    CEFR_LEVELS.map((l): [CefrLevel, string] => [l, `${l} · ${t.levels[l]}`]),
+    () => cur.level,
+    (v) => (cur.level = v),
+  );
+  const lexicalGroup = radio<string | null>(
+    t.lexical,
+    [[null, t.lexicalAny], ...LEXICAL_TOPICS.map((x): [string, string] => [x, x])],
+    () => cur.lexicalTopic,
+    (v) => (cur.lexicalTopic = v),
+  );
+  lexicalGroup.lang = 'de';
+  sheet.append(el('h3', 'bf-quiz-title', t.level), levelGroup);
+  sheet.append(el('h3', 'bf-quiz-title', t.lexical), lexicalGroup);
+
+  // Темы: свои наборы слов и грамматика, вместе не больше MAX_GRAMMAR_TOPICS.
+  const topicsTitle = el('h3', 'bf-quiz-title');
+  sheet.appendChild(topicsTitle);
+  const topicButtons: Array<{ b: HTMLButtonElement; topic: string }> = [];
+  const group = (title: string, topics: readonly string[], groupNote?: string) => {
+    const box = el('div', 'bf-quiz-group');
+    box.appendChild(el('div', 'bf-quiz-group-title', title));
+    const tags = el('div', 'bf-tags');
+    tags.lang = 'de';
+    for (const topic of topics) {
+      const b = el('button', 'bf-tag', topic);
+      b.type = 'button';
+      b.addEventListener('click', () => {
+        const i = cur.grammarTopics.indexOf(topic);
+        if (i >= 0) cur.grammarTopics.splice(i, 1);
+        else if (cur.grammarTopics.length < MAX_GRAMMAR_TOPICS) cur.grammarTopics.push(topic);
+        syncTopics();
+      });
+      tags.appendChild(b);
+      topicButtons.push({ b, topic });
+    }
+    box.appendChild(tags);
+    if (groupNote) box.appendChild(el('p', 'bf-note', groupNote));
+    sheet.appendChild(box);
+  };
+  group(t.groups.vocab, VOCAB_TOPICS, t.vocabNote);
+  for (const g of GRAMMAR_GROUPS) group(t.groups[g.id] ?? g.id, g.topics);
+
+  const check = (label: string, value: () => boolean, set: (v: boolean) => void) => {
+    const row = el('label', 'bf-quiz-check');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.addEventListener('change', () => {
+      set(input.checked);
+      syncTopics();
+    });
+    const text = el('span', '', label);
+    const hint = el('span', 'bf-note');
+    text.append(el('br'), hint);
+    row.append(input, text);
+    sheet.appendChild(row);
+    return { input, hint, sync: () => (input.checked = value()) };
+  };
+  const word = check(
+    t.wortstellung,
+    () => cur.wortstellung,
+    (v) => (cur.wortstellung = v),
+  );
+  const listen = check(
+    t.listening,
+    () => cur.listening,
+    (v) => (cur.listening = v),
+  );
+  listen.hint.textContent = t.listeningHint;
+
+  const need = el('p', 'bf-note bf-quiz-need');
+  sheet.appendChild(need);
+  const done = button(t.done, 'is-primary', () =>
+    h.onDone({ ...cur, grammarTopics: [...cur.grammarTopics] }),
+  );
+  const row = el('div', 'bf-row');
+  row.append(done, button(t.bank, '', h.onBank), button(t.cancel, 'is-small', h.onCancel));
+  sheet.appendChild(row);
+
+  const syncTopics = () => {
+    const n = cur.grammarTopics.length;
+    topicsTitle.textContent = t.topics(n, MAX_GRAMMAR_TOPICS);
+    for (const { b, topic } of topicButtons) {
+      const on = cur.grammarTopics.includes(topic);
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = !on && n >= MAX_GRAMMAR_TOPICS;
+    }
+    // Порядок слов — на материале первой грамматической темы: у наборов слов его нет.
+    const firstGrammar = cur.grammarTopics.find((topic) => !isVocabTopic(topic)) ?? null;
+    if (!firstGrammar) cur.wortstellung = false;
+    word.input.disabled = !firstGrammar;
+    word.hint.textContent = t.wortstellungHint(firstGrammar);
+    word.sync();
+    listen.sync();
+    const ok = n > 0 || cur.listening;
+    done.disabled = !ok;
+    need.textContent = ok ? '' : t.needTopic;
+  };
+  syncTopics();
+
+  root.appendChild(sheet);
+  setTimeout(() => (levelGroup.querySelector<HTMLElement>('.is-on') ?? done).focus(), 50);
   return root;
 }
 
@@ -114,9 +305,11 @@ export function levelsScreen(h: {
   return root;
 }
 
-export function introScreen(onSkip: () => void): HTMLElement {
+/** Интро ночи; note — помощь после неудач («Сухой мох: угли тлеют дольше»). */
+export function introScreen(onSkip: () => void, note?: string): HTMLElement {
   const root = screen('is-clear bf-intro');
   root.append(el('div', 'bf-line', ru.intro.line1), el('div', 'bf-line', ru.intro.line2));
+  if (note) root.appendChild(el('div', 'bf-caption bf-assist-note', note));
   root.addEventListener('pointerdown', onSkip);
   return root;
 }
@@ -159,6 +352,8 @@ export interface ResultsData {
   newRecord: boolean;
   cause: { near: boolean; gust: boolean } | null;
   hasNext: boolean;
+  /** Во сколько раз дольше будут тлеть угли в следующий раз, если помощь только что заработана. */
+  assistNext: number;
   staggerMs: number;
   tallyMs: number;
   onTally?: (i: number) => void;
@@ -221,6 +416,8 @@ export function resultsScreen(
     c3.appendChild(row);
   }
   if (d.newRecord) c3.appendChild(el('p', 'bf-caption', r.newRecord));
+  if (d.assistNext)
+    c3.appendChild(el('p', 'bf-caption bf-assist-next', ru.assist.next(d.assistNext)));
   [c1, c2, c3].forEach((c, i) => (c.style.animationDelay = `${i * d.staggerMs}ms`));
   cards.append(c1, c2, c3);
   root.appendChild(cards);
@@ -260,6 +457,8 @@ export interface SettingsData {
   autoLow: boolean;
   hints: boolean;
   words: 'de' | 'ru';
+  /** Помощь после неудач подряд: угли тлеют дольше (balance.assist). */
+  assist: boolean;
 }
 
 export function settingsScreen(
@@ -352,6 +551,10 @@ export function settingsScreen(
       v.hints ? 'on' : 'off',
       (x) => (v.hints = x === 'on'),
     ),
+  );
+  row(
+    s.assist,
+    check(v.assist, (x) => (v.assist = x)),
   );
   row(
     s.words,

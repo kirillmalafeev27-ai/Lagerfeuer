@@ -134,6 +134,17 @@
   border-radius: 12px;
 }
 
+/* Задание и варианты — на одном листе: у заданий генератора он подбирается целиком и в крайнем
+   случае прокручивается (QuestionPanel.fitSheet). */
+.bf-qsheet {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vmin, 12px);
+  overflow: hidden;
+}
+
 .bf-prompt {
   flex: 1 1 auto;
   min-height: 64px;
@@ -257,6 +268,217 @@
 .bf-question.is-blurred .bf-options {
   filter: blur(9px);
   pointer-events: none;
+}
+
+/* ── Задания генератора (формат Morskoy): инструкция, материал, варианты-предложения ── */
+
+.bf-prompt [hidden] {
+  display: none !important;
+}
+
+.bf-pline {
+  display: block;
+}
+
+.bf-instruction {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.25;
+  opacity: 0.75;
+}
+
+/* Подпись вместо задания, пока генерация готовит первый вопрос раунда. */
+.bf-prompt.is-waiting .bf-material {
+  font-weight: 400;
+  opacity: 0.7;
+  animation: bf-breathe 1.2s ease-in-out infinite;
+}
+
+.bf-question.is-task .bf-qsheet {
+  gap: 8px;
+}
+
+.bf-question.is-task .bf-prompt {
+  flex: 1 0 auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 12px 6px;
+  overflow: visible;
+}
+
+.bf-question.is-task .bf-material {
+  line-height: 1.24;
+  overflow-wrap: break-word;
+}
+
+/* Реплики диалога читаются слева направо, как в учебнике. */
+.bf-question.is-task .bf-material.is-dialog {
+  text-align: left;
+}
+
+.bf-listen {
+  appearance: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 18px;
+  border: 2px solid var(--bf-ink);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--bf-ink);
+  font:
+    500 18px/1.1 'Rubik',
+    sans-serif;
+  cursor: pointer;
+}
+
+.bf-listen:active {
+  transform: translateY(2px);
+}
+
+.bf-listen:focus-visible {
+  outline: 3px solid var(--bf-caption);
+  outline-offset: 2px;
+}
+
+.bf-question.is-task .bf-options {
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+/* Короткие варианты задания генератора (одно слово, «ist – gefahren»): ниже 56 px из 11.2.4,
+   чтобы рядом с инструкцией и материалом встал весь вопрос. 58 = 44 видимых + 2 × 7 рамки. */
+.bf-question.is-task .bf-option {
+  min-height: 58px;
+  padding: 4px 10px;
+}
+
+/* В ландшафте варианты банка стоят столбиком (11.2.4), а короткие варианты задания генератора —
+   сеткой 2 × 2: рядом с инструкцией и диалогом столбик из четырёх не помещается. */
+.bf.is-landscape .bf-question.is-task .bf-options.is-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Варианты-предложения: столбиком во всю ширину, текст по левому краю — так их легко сравнить. */
+.bf-question.is-task .bf-options.is-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bf-question.is-task .bf-options.is-column .bf-option {
+  min-height: 54px;
+  padding: 5px 12px;
+  text-align: left;
+}
+
+.bf-question.is-task .bf-text {
+  display: block;
+  line-height: 1.22;
+}
+
+.bf:not(.is-touch) .bf-question.is-task .bf-options.is-column .bf-option {
+  padding-left: 26px;
+}
+
+.bf-question.is-task .bf-options.is-column .bf-key {
+  top: 50%;
+  left: 9px;
+  transform: translateY(-50%);
+}
+
+/* Плотная раскладка: длинное задание на телефоне — меньше полей, прежде чем мельчить шрифт. */
+.bf-qsheet.is-dense {
+  gap: 5px;
+}
+
+.bf-qsheet.is-dense .bf-prompt {
+  padding: 4px 10px 3px;
+  gap: 2px;
+}
+
+.bf-qsheet.is-dense .bf-options,
+.bf-qsheet.is-dense .bf-options.is-column {
+  gap: 4px;
+}
+
+.bf-question.is-task .bf-qsheet.is-dense .bf-option {
+  min-height: 54px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.bf-question.is-task .bf-qsheet.is-dense .bf-options.is-column .bf-option {
+  min-height: 50px;
+}
+
+.bf-qsheet.is-dense .bf-material,
+.bf-qsheet.is-dense .bf-text {
+  line-height: 1.15;
+}
+
+.bf-qsheet.is-dense .bf-listen {
+  min-height: 36px;
+  padding: 3px 14px;
+  font-size: 15px;
+}
+
+/* Крайний случай (очень длинное задание на маленьком экране): лист прокручивается, а нижний
+   край тает — видно, что ниже есть ещё варианты. */
+.bf-qsheet.is-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+
+.bf-qsheet.is-scroll.is-scroll-end {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* С заданиями генератора панель вопроса выше (в ландшафте — шире): им нужнее место, чем поляне. */
+.bf.is-gen .bf-stage {
+  grid-template-rows: minmax(0, 1fr) clamp(300px, 50%, 520px);
+}
+
+.bf.is-gen.is-landscape .bf-stage {
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 40%, 560px);
+  grid-template-rows: 1fr;
+}
+
+/* Невысокий телефон (iPhone SE и ниже): заданию генератора нужнее место, чем рамкам и поляне. */
+@media (max-height: 760px) {
+  .bf.is-gen:not(.is-landscape) .bf-stage {
+    grid-template-rows: minmax(0, 1fr) clamp(300px, 56%, 520px);
+  }
+
+  .bf.is-gen .bf-question {
+    gap: 6px;
+    border-width: 10px;
+    border-image: var(--bf-frame) 28 / 10px / 4px round;
+    padding: 2px;
+  }
+
+  .bf.is-gen .bf-qhead {
+    min-height: 28px;
+    font-size: 14px;
+  }
+
+  .bf.is-gen .bf-qhead img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .bf.is-gen .bf-question.is-task .bf-qsheet {
+    gap: 6px;
+  }
 }
 
 /* ── Плашка снаряжения ────────────────────────────────── */
@@ -855,6 +1077,166 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* ── Выбор тем вопросов (движок Morskoy) ─────────────────── */
+
+.bf-menu .bf-quiz-summary {
+  margin: -4px 0 0;
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--bf-caption);
+}
+
+.bf-menu-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.bf-menu .bf-menu-row .bf-btn {
+  min-width: 0;
+  width: 150px;
+  max-width: 40vw;
+}
+
+.bf-quiz-screen {
+  align-items: flex-start;
+  overflow: auto;
+}
+
+.bf-quiz {
+  width: min(600px, 100%);
+  max-height: none;
+  margin: auto;
+  text-align: left;
+}
+
+.bf-quiz .bf-h2 {
+  text-align: center;
+}
+
+.bf-quiz-intro {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.bf-quiz .bf-note {
+  font-size: 12.5px;
+  line-height: 1.35;
+  opacity: 0.75;
+  margin: 4px 0 0;
+}
+
+.bf-quiz-status:empty {
+  display: none;
+}
+
+.bf-quiz-title {
+  margin: 14px 0 6px;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--bf-caption);
+}
+
+.bf-quiz-group-title {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.bf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bf-tag {
+  appearance: none;
+  min-height: 36px;
+  padding: 5px 11px;
+  border: 2px solid color-mix(in srgb, var(--bf-chalk) 70%, transparent);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--bf-chalk);
+  font:
+    400 14px/1.2 'Rubik',
+    sans-serif;
+  cursor: pointer;
+}
+
+.bf-tag.is-on {
+  background: var(--bf-caption);
+  border-color: var(--bf-caption);
+  color: var(--bf-ink);
+  font-weight: 500;
+}
+
+.bf-tag:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bf-tag:focus-visible {
+  outline: 3px solid var(--bf-caption);
+  outline-offset: 2px;
+}
+
+.bf-quiz-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0 0;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.bf-quiz-check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--bf-caption);
+}
+
+.bf-quiz-check .bf-note {
+  display: inline-block;
+}
+
+.bf-quiz-need:empty {
+  display: none;
+}
+
+.bf-quiz .bf-row {
+  justify-content: center;
+}
+
+/* Подписи помощи после неудач: в интро и в итогах. */
+.bf-intro .bf-assist-note {
+  margin-top: 10px;
+  font-size: clamp(14px, 2.2vmin, 18px);
+  opacity: 0;
+  animation: bf-fade-in 0.45s ease-out 0.9s forwards;
+}
+
+.bf-intro .bf-line.bf-wait {
+  font-family: 'Rubik', sans-serif;
+  -webkit-text-stroke: 0;
+  font-size: clamp(15px, 2.4vmin, 19px);
+  color: var(--bf-chalk);
+  animation:
+    bf-fade-in 0.3s ease-out forwards,
+    bf-breathe 1.2s ease-in-out 0.3s infinite;
+}
+
+.bf-rcard .bf-assist-next {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.3;
 }
 
 @keyframes bf-shake {

@@ -9,11 +9,12 @@ import { type Cell, type Side, cellCol, cellInDirection, cellRow } from '../core
 import type { GameEvent } from '../core/events.ts';
 import { type PlanFn, makeMixedBot } from '../core/bots.ts';
 import { plannedAction } from '../core/intent.ts';
-import { generateLevel } from '../core/levelGen.ts';
+import { assistEmberMul, generateLevel } from '../core/levelGen.ts';
 import { hashSeed } from '../core/rng.ts';
 import { type GameState, cloneState } from '../core/state.ts';
 import type { WoodKind } from '../core/wood.ts';
 import { GameController } from '../game/GameController.ts';
+import { type QuestionKind, paceConfigFor, paceKeyFor } from '../game/pacing.ts';
 import { GameAudio } from '../audio/GameAudio.ts';
 import { ru } from '../i18n/ru.ts';
 import { sfxDe } from '../i18n/sfx.de.ts';
@@ -24,7 +25,13 @@ import { Mixer } from '../shared/audio/mixer.ts';
 import { type Layout, chalkThemeImages, createLayout } from '../shared/layout.ts';
 import { PaceTracker, median } from '../shared/pace.ts';
 import { QuestionPanel } from '../shared/QuestionPanel.ts';
-import type { QuestionProvider } from '../shared/questions/types.ts';
+import {
+  type ConfigurableQuestionProvider,
+  isConfigurable,
+} from '../shared/questions/AiQuestionProvider.ts';
+import { type Speaker, createSpeaker } from '../shared/questions/speech.ts';
+import { type QuizConfig, isVocabTopic, sanitizeQuizConfig } from '../shared/questions/topics.ts';
+import type { Question, QuestionProvider } from '../shared/questions/types.ts';
 import { type KeyValueStorage, localKeyValue, readJson, writeJson } from '../shared/storage.ts';
 import { GearWidget } from './GearWidget.ts';
 import { iconHands, iconLog, iconReady, iconStep, warmIcons, wordImage } from './icons.ts';
@@ -35,6 +42,7 @@ import {
   loadingScreen,
   menuScreen,
   pauseScreen,
+  quizScreen,
   resultsScreen,
   settingsScreen,
   type SettingsData,
@@ -52,6 +60,10 @@ export interface FinishResult {
 }
 
 export interface MountOptions {
+  /**
+   * Источник вопросов. Если он умеет выбирать темы (AiQuestionProvider — задания от ИИ), в меню
+   * есть «Вопросы»; LocalBankProvider — встроенный банк.
+   */
   questions: QuestionProvider;
   storage?: KeyValueStorage;
   level?: number;
@@ -67,6 +79,17 @@ interface Settings extends SettingsData {
 interface Progress {
   unlocked: string[];
   best: Record<string, number>;
+  /** Поражений подряд на уровне — для помощи после неудач; победа обнуляет. */
+  streak: Record<string, number>;
+}
+
+/**
+ * Выбор тем вопросов. chosen — игрок уже решал (темы или встроенный набор): тогда «Играть»
+ * больше не открывает выбор тем сам.
+ */
+interface QuizChoice {
+  chosen?: unknown;
+  config?: unknown;
 }
 
 type Tutorial = 'start' | 'eyes' | 'oak' | 'embers' | 'wind';
@@ -81,7 +104,21 @@ export class App {
   private readonly store: KeyValueStorage;
   private readonly paceStore: KeyValueStorage;
   private readonly layout: Layout;
-  private readonly pace: PaceTracker;
+  /** Темп по видам вопросов: банк — общий ключ серии, генератор — свой на каждый уровень A1–C1. */
+  private readonly paces = new Map<string, PaceTracker>();
+  /** Источник, которому игрок выбирает темы (ИИ-генерация); у встроенного банка — null. */
+  private readonly quiz: ConfigurableQuestionProvider | null;
+  private quizChosen = false;
+  /** Генерация на сервере подключена (ответ /api/quiz/status); null — ответа ещё нет. */
+  private generationOn: boolean | null = null;
+  private quizEl: HTMLElement | null = null;
+  private readonly speaker: Speaker;
+  /** Номер ночи: поздний ответ генерации к прошлой ночи не начинает новую. */
+  private roundSeq = 0;
+  /** Интро кончилось, а первого вопроса ещё нет: ночь ждёт генерацию (12.4). */
+  private waitingQuestions = false;
+  /** Помощь после неудач, заработанная только что (для итогов), — ступень или 0. */
+  private assistNext = 0;
   private readonly mixer: Mixer;
   private readonly audio: GameAudio;
   private readonly gear: GearWidget;
@@ -127,6 +164,7 @@ export class App {
       autoLow: false,
       hints: true,
       words: 'de',
+      assist: true,
     });
     if (!s.reducedMotionSet) s.reducedMotion = reducedPref;
     // dev: ?quality=high|low — фиксированное качество без автопереключения (тесты, снимки).
@@ -136,7 +174,11 @@ export class App {
       this.autoLowDone = true;
     }
     this.settings = s;
-    this.progress = readJson<Progress>(this.store, 'progress', { unlocked: ['1'], best: {} });
+    this.progress = readJson<Progress>(this.store, 'progress', {
+      unlocked: ['1'],
+      best: {},
+      streak: {},
+    });
     this.tutorial = readJson<Record<Tutorial, boolean>>(this.store, 'tutorial', {
       start: false,
       eyes: false,
@@ -144,7 +186,19 @@ export class App {
       embers: false,
       wind: false,
     });
-    this.pace = new PaceTracker(this.paceStore, balance.pace);
+    // Темы — до первой ночи: панель сразу загружает первый вопрос (12.4). Если источник уже
+    // настроил встраивающий его хозяин, его выбор главнее сохранённого.
+    this.quiz = isConfigurable(opts.questions) ? opts.questions : null;
+    if (this.quiz) {
+      const saved = readJson<QuizChoice>(this.store, 'quiz', {});
+      this.quizChosen = saved.chosen === true || this.quiz.config() !== null;
+      if (saved.chosen === true && this.quiz.config() === null)
+        this.quiz.configure(sanitizeQuizConfig(saved.config));
+      void this.quiz.status().then((st) => {
+        this.generationOn = st.generationConfigured;
+        if (this.screen === 'menu' || this.screen === 'levels') this.syncGenLayout();
+      });
+    }
     this.mixer = new Mixer({ sfx: s.sfx, ambient: s.ambient, muted: s.muted });
     this.audio = new GameAudio(this.mixer);
 
@@ -170,9 +224,10 @@ export class App {
     this.panel = new QuestionPanel({
       host: this.layout.question,
       provider: opts.questions,
-      strings: { group: ru.question.group, option: ru.question.option },
-      onAnswer: (correct, timeMs) => this.onAnswer(correct, timeMs),
+      strings: { group: ru.question.group, option: ru.question.option, listen: ru.question.listen },
+      onAnswer: (correct, timeMs, q) => this.onAnswer(correct, timeMs, q),
       wrongMs: balance.wrongFeedbackMs,
+      wrongGeneratedMs: balance.wrongFeedbackGeneratedMs,
       correctGlowMs: timing.correctGlowMs,
       drawInMs: timing.questionDrawInMs,
       guardMs: balance.doubleTapGuardMs,
@@ -180,6 +235,10 @@ export class App {
     });
     this.panel.setHeader(iconStep(), ru.header.intro);
     this.panel.setMode('intro');
+    // Аудирование: фраза звучит сама, если звук не выключен; кнопка «Слушать» — всегда.
+    this.speaker = createSpeaker({ volume: () => this.settings.sfx });
+    this.panel.setSpeaker(this.speaker, () => !this.settings.muted);
+    this.syncGenLayout();
 
     this.host = {
       dpr: this.dpr,
@@ -225,6 +284,10 @@ export class App {
         wood: (k: WoodKind) => this.selectWood(k),
         /** Ход «игрока-бота»: смешанный бот выбирает цель, App получает это как тапы. */
         botStep: () => this.debugBotStep(),
+        panelReady: () => this.panel.isReady(),
+        showQuestion: (q: Question) => this.panel.debugShow(q),
+        quiz: () => this.quiz?.config() ?? null,
+        openQuiz: () => this.openQuiz(),
       };
     }
     const loop = () => {
@@ -358,14 +421,104 @@ export class App {
     this.panel.setMode('intro');
     this.show(
       menuScreen({
-        onPlay: () => {
-          this.unlockAudio();
-          this.showLevels();
-        },
+        onPlay: () => void this.play(),
         onSettings: () => this.openSettings(),
+        quiz: this.quiz
+          ? { summary: this.quizSummary(), onOpen: () => this.openQuiz() }
+          : undefined,
       }),
       'panel',
     );
+  }
+
+  /** «Играть»: в первый раз, если генерация на сервере есть, — сначала выбор тем. */
+  private async play(): Promise<void> {
+    this.unlockAudio();
+    if (this.quiz && !this.quizChosen) {
+      const st = await this.quiz.status();
+      if (this.screen !== 'menu' || this.quizEl) return;
+      if (st.generationConfigured) {
+        this.openQuiz(() => this.showLevels());
+        return;
+      }
+    }
+    this.showLevels();
+  }
+
+  private quizSummary(): string {
+    const cfg = this.quiz?.config();
+    if (!cfg) return ru.quiz.summaryBank;
+    const topics = [...cfg.grammarTopics];
+    if (cfg.wortstellung) topics.push('Wortstellung');
+    if (cfg.listening) topics.push(ru.quiz.listeningOnly);
+    return ru.quiz.summary(cfg.level, topics);
+  }
+
+  /** Выбор тем (шаги меню Morskoy). then — что открыть после «Готово». */
+  private openQuiz(then?: () => void): void {
+    const quiz = this.quiz;
+    if (!quiz || this.quizEl) return;
+    const apply = (cfg: QuizConfig | null) => {
+      writeJson(this.store, 'quiz', { chosen: true, config: cfg });
+      this.quizChosen = true;
+      // Те же темы — очереди не сбрасываем: уже готовые задания пригодятся.
+      if (JSON.stringify(cfg) !== JSON.stringify(quiz.config())) {
+        quiz.configure(cfg);
+        this.panel.reload();
+      }
+      this.closeQuiz();
+      this.syncGenLayout();
+      if (then) then();
+      else if (this.screen === 'menu') this.showMenu();
+    };
+    this.quizEl = quizScreen(quiz.config(), quiz.status(), {
+      onDone: (cfg) => apply(cfg),
+      onBank: () => apply(null),
+      onCancel: () => this.closeQuiz(),
+    });
+    this.layout.overlay.appendChild(this.quizEl);
+  }
+
+  private closeQuiz(): void {
+    this.quizEl?.remove();
+    this.quizEl = null;
+  }
+
+  /**
+   * Вопросы ночи: при выбранных темах — задания генератора, если сервер не ответил, что её нет
+   * (свои наборы слов отдаются и без ключа); иначе — те, что на очереди. Сомнение — в пользу
+   * генератора: его ночь щадящая, а ночь банка с заданиями-предложениями была бы непосильной.
+   */
+  private roundKind(): QuestionKind {
+    const cfg = this.quiz?.config();
+    if (cfg && (this.generationOn !== false || cfg.grammarTopics.some(isVocabTopic)))
+      return 'generated';
+    return this.panel.peekKind() ?? 'bank';
+  }
+
+  /** С заданиями генератора панель вопроса больше: им нужнее место, чем поляне. */
+  private syncGenLayout(kind: QuestionKind = this.roundKind()): void {
+    this.layout.root.classList.toggle('is-gen', kind === 'generated');
+  }
+
+  /** Учёт темпа для вида вопросов: банк или задания генератора текущего уровня A1–C1. */
+  private paceFor(kind: QuestionKind): PaceTracker {
+    const cefr = this.quiz?.config()?.level ?? 'B1';
+    const key = paceKeyFor(kind, cefr);
+    let t = this.paces.get(key);
+    if (!t) {
+      t = new PaceTracker(this.paceStore, paceConfigFor(kind, cefr), key);
+      this.paces.set(key, t);
+    }
+    return t;
+  }
+
+  /** Помощь после неудач подряд на уровне: 0, 1 или 2 ступени (balance.assist). */
+  private assistFor(id: LevelId): number {
+    if (!this.settings.assist) return 0;
+    const n = this.progress.streak[levelKey(id)] ?? 0;
+    const a = balance.assist;
+    return n >= a.secondAfterLosses ? 2 : n >= a.afterLosses ? 1 : 0;
   }
 
   private showLevels(): void {
@@ -424,32 +577,58 @@ export class App {
     this.level = id;
     this.finished = false;
     this.shot = null;
-    const pace = this.pace.snapshot();
+    this.assistNext = 0;
+    // Темп — по виду вопросов этой ночи (3, game/pacing.ts); у ночи с заданиями генератора —
+    // свои параметры уровня и потолок длины, а после неудач подряд угли тлеют дольше.
+    const kind = this.roundKind();
+    const pace = this.paceFor(kind).snapshot();
+    const assist = this.assistFor(id);
     const forced = this.opts.dev ? Number(new URLSearchParams(location.search).get('seed')) : NaN;
     const seed =
       forced > 0
         ? forced
         : hashSeed(Date.now() & 0x7fffffff, levelNum(id), Math.floor(Math.random() * 1e6));
-    const gen = generateLevel(id, seed, pace);
+    this.syncGenLayout(kind);
+    const gen = generateLevel(id, seed, pace, { generated: kind === 'generated', assist });
     this.ctl = new GameController(gen.state);
     this.scene.beginRound(this.ctl, 'intro');
     // Палатка всегда по диагонали от поленницы: один из верхних углов свободен.
     const pileLeft = cellCol(gen.state.pile) === 0;
     this.gear.placeAt(cellRow(gen.state.pile) === 0 ? !pileLeft : pileLeft);
     this.setGearVisible(true);
+    // Плашка — сразу с дровами и луной: интро может ждать первое задание.
+    this.syncHud();
     this.panel.setMode('intro');
     this.panel.setHeader(iconStep(), ru.header.intro);
     this.panel.setReadyLock(false);
-    void this.panel.start();
+    const seq = ++this.roundSeq;
+    this.waitingQuestions = false;
+    const first = this.panel.start(ru.header.preparing);
     this.screen = 'intro';
     this.scene.playIntro();
     this.audio.play('clap');
     const done = () => {
-      if (this.screen !== 'intro') return;
+      if (this.screen !== 'intro' || seq !== this.roundSeq) return;
       clearTimeout(this.introTimer);
-      this.beginPlay();
+      if (this.panel.isReady()) {
+        this.beginPlay();
+        return;
+      }
+      // Ночь не начинается без вопроса: пока генерация готовит первый, всё стоит (12.4), а на
+      // табличке задания — «Готовлю вопросы…».
+      if (this.waitingQuestions) return;
+      this.waitingQuestions = true;
+      void first.then(() => {
+        if (seq === this.roundSeq && this.screen === 'intro' && this.panel.isReady())
+          this.beginPlay();
+      });
     };
-    this.show(introScreen(done));
+    // Подпись интро — над поляной: с большой панелью заданий генератора середина экрана
+    // приходится на границу панелей.
+    this.show(
+      introScreen(done, assist ? ru.assist.on(assistEmberMul(assist)) : undefined),
+      'world',
+    );
     this.introTimer = window.setTimeout(
       done,
       this.settings.reducedMotion ? 900 : timing.introMaxMs,
@@ -458,6 +637,7 @@ export class App {
 
   private beginPlay(): void {
     if (!this.scene || !this.ctl) return;
+    this.waitingQuestions = false;
     this.show(null);
     this.screen = 'play';
     this.scene.startPlay();
@@ -467,10 +647,10 @@ export class App {
     else if (this.level === 2 && !this.tutorial.oak) this.tutorialBubble('oak', ru.tutorial.oak);
   }
 
-  private onAnswer(correct: boolean, timeMs: number): void {
+  private onAnswer(correct: boolean, timeMs: number, q: Question): void {
     const ctl = this.ctl;
     if (!ctl || this.screen !== 'play') return;
-    this.pace.record(timeMs, correct);
+    this.paceFor(q.instruction ? 'generated' : 'bank').record(timeMs, correct);
     ctl.answer(correct, timeMs);
     if (correct) {
       this.audio.correct();
@@ -508,14 +688,18 @@ export class App {
     );
     const won = st.status === 'won';
     const key = levelKey(this.level);
+    const assistBefore = this.assistFor(this.level);
+    this.progress.streak[key] = won ? 0 : (this.progress.streak[key] ?? 0) + 1;
+    const assistAfter = this.assistFor(this.level);
+    this.assistNext = !won && assistAfter > assistBefore ? assistAfter : 0;
     if (won) {
       const prev = this.progress.best[key] ?? 0;
       this.progress.best[key] = Math.max(prev, st.stars);
       const nx = nextLevel(this.level);
       if (nx !== null && !this.progress.unlocked.includes(levelKey(nx)))
         this.progress.unlocked.push(levelKey(nx));
-      writeJson(this.store, 'progress', this.progress);
     }
+    writeJson(this.store, 'progress', this.progress);
     this.opts.onFinish?.({
       level: levelNum(this.level),
       won,
@@ -554,6 +738,7 @@ export class App {
             newRecord: st.status === 'won' && st.stars >= best && st.stars > 0,
             cause: st.stats.cause ? { near: st.stats.cause.near, gust: st.stats.cause.gust } : null,
             hasNext: nx !== null && this.progress.unlocked.includes(levelKey(nx)),
+            assistNext: this.assistNext ? assistEmberMul(this.assistNext) : 0,
             staggerMs: this.settings.reducedMotion ? 0 : timing.results.cardStaggerMs,
             tallyMs: this.settings.reducedMotion ? 30 : timing.results.tallyStepMs,
             onTally: (i) => this.audio.play('tally', 0, 0.8 + Math.min(0.6, i * 0.03)),
@@ -736,6 +921,11 @@ export class App {
   private onKey(e: KeyboardEvent): void {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
     const k = e.key;
+    // Выбор тем — модальный: Esc закрывает его, остальные клавиши его кнопкам.
+    if (this.quizEl) {
+      if (k === 'Escape') this.closeQuiz();
+      return;
+    }
     if ((k === 'p' || k === 'P' || k === 'Escape') && !e.repeat) {
       if (this.screen === 'play') this.pause();
       else if (this.screen === 'paused' && !this.settingsEl) this.resume();
@@ -935,7 +1125,7 @@ export class App {
     const fps = Math.round(this.game?.loop.actualFps ?? 0);
     const lines = [
       `FPS ${fps}  seed ${s.seed}  арт ${Math.round(this.genMs)} мс`,
-      `T_med ${s.tMed.toFixed(2)}  p ${s.p.toFixed(2)}  A ${s.A.toFixed(2)}`,
+      `T_med ${s.tMed.toFixed(2)}  p ${s.p.toFixed(2)}  A ${s.A.toFixed(2)}  ${s.generated ? 'генератор' : 'банк'}  угли ${s.emberA.toFixed(1)} A`,
       `ночь ${(s.t / s.nightA).toFixed(3)}  (${s.t.toFixed(1)}/${s.nightA.toFixed(1)} A)`,
       ...s.fires.map(
         (f) =>
@@ -951,6 +1141,8 @@ export class App {
     clearTimeout(this.introTimer);
     for (const c of this.cleanups) c();
     this.panel.destroy();
+    this.speaker.destroy();
+    this.closeQuiz();
     this.game?.destroy(true);
     this.game = null;
     this.mixer.close();

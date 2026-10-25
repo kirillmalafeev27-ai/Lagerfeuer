@@ -607,6 +607,7 @@ export class GameScene extends Phaser.Scene {
       const ghost = hintsOn && flags.oak && oakHint(s, fv.side);
       fv.update(dt, t, {
         fire: f,
+        emberA: s.emberA,
         gust: activeGust(s, fv.side) !== null && s.status === 'playing',
         warned: warned !== null && warned.side === fv.side && s.status === 'playing',
         ring: this.mode === 'over' ? null : ring,

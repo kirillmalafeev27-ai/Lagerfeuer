@@ -2,6 +2,13 @@
 
 import { countRu } from '../shared/i18n/plural.ts';
 
+/** «в полтора раза», «вдвое», «в 2,5 раза». */
+function timesRu(mul: number): string {
+  if (Math.abs(mul - 1.5) < 1e-9) return 'в полтора раза';
+  if (Math.abs(mul - 2) < 1e-9) return 'вдвое';
+  return `в ${String(Math.round(mul * 10) / 10).replace('.', ',')} раза`;
+}
+
 export const ru = {
   title: 'Костры до рассвета',
   subtitle: 'Bis zum Morgengrauen',
@@ -10,7 +17,55 @@ export const ru = {
     play: 'Играть',
     levels: 'Уровни',
     settings: 'Настройки',
+    quiz: 'Вопросы',
     hint: 'Каждый верный ответ по немецкому — шаг или полено в костёр',
+  },
+  quiz: {
+    title: 'Вопросы',
+    summaryBank: 'Вопросы: встроенный набор',
+    summary: (level: string, topics: string[]) =>
+      `Вопросы: ${level} · ${topics.slice(0, 2).join(', ')}${topics.length > 2 ? ` и ещё ${topics.length - 2}` : ''}`,
+    listeningOnly: 'аудирование',
+    intro:
+      'Задания сочиняет ИИ: целые предложения, девять форматов — от выбора варианта до исправления ошибки. Темы чередуются.',
+    level: 'Уровень немецкого',
+    levels: {
+      A1: 'Начальный',
+      A2: 'Элементарный',
+      B1: 'Средний',
+      B2: 'Выше среднего',
+      C1: 'Продвинутый',
+    } as Record<string, string>,
+    lexical: 'Лексическая тема',
+    lexicalAny: 'Любая',
+    topics: (n: number, max: number) => `Темы — выбрано ${n} из ${max}`,
+    groups: {
+      vocab: 'Свои наборы слов',
+      verbs: 'Глаголы',
+      nouns: 'Существительные, артикли, местоимения',
+      adjectives: 'Прилагательные',
+      prepositions: 'Предлоги',
+      syntax: 'Порядок слов и отрицание',
+      clauses: 'Придаточные',
+      advanced: 'Продвинутое',
+    } as Record<string, string>,
+    vocabNote:
+      'Только слова из списка — по смыслу и с предлогами. Задания составлены заранее: уровень и лексическая тема на них не влияют.',
+    wortstellung: 'Порядок слов (Wortstellung)',
+    wortstellungHint: (topic: string | null) =>
+      topic
+        ? `Задания на порядок слов на материале темы «${topic}»`
+        : 'Сначала выбери грамматическую тему',
+    listening: 'Аудирование',
+    listeningHint: 'Немецкая фраза звучит вслух — выбери точный перевод',
+    needTopic: 'Выбери хотя бы одну тему или аудирование',
+    checking: 'Проверяю сервер генерации…',
+    noKey:
+      'На сервере не задан ключ генерации (AITUNNEL_API_KEY) — пока будут вопросы из встроенного набора.',
+    noServer: 'Сервер генерации недоступен — пока будут вопросы из встроенного набора.',
+    done: 'Готово',
+    bank: 'Встроенный набор',
+    cancel: 'Отмена',
   },
   levels: {
     title: 'Выбери ночь',
@@ -43,6 +98,7 @@ export const ru = {
     none: 'Ответ — про запас',
     ready: 'Готов! Выбери, что делать',
     intro: 'Приготовься…',
+    preparing: 'Готовлю вопросы…',
     paused: 'Пауза',
     over: 'Ночь кончилась',
   },
@@ -50,6 +106,7 @@ export const ru = {
     group: 'Вопрос по немецкому',
     option: (i: number) => `Вариант ${i}`,
     readyHint: 'Нажми на костёр, клетку или поленницу',
+    listen: 'Слушать',
   },
   gear: {
     hands: 'В руках',
@@ -103,6 +160,12 @@ export const ru = {
     menu: 'В меню',
     newRecord: 'Новый рекорд!',
   },
+  /** Помощь после неудач подряд (balance.assist): угли тлеют дольше. */
+  assist: {
+    on: (mul: number) => `Сухой мох: угли тлеют ${timesRu(mul)} дольше`,
+    next: (mul: number) => `В следующий раз — сухой мох: угли тлеют ${timesRu(mul)} дольше`,
+    badge: 'мох',
+  },
   settings: {
     title: 'Настройки',
     sound: 'Звук',
@@ -119,6 +182,7 @@ export const ru = {
     words: 'Слова-звуки',
     wordsDe: 'По-немецки',
     wordsRu: 'По-русски',
+    assist: 'Сухой мох после двух неудач подряд',
     close: 'Готово',
   },
   tutorial: {

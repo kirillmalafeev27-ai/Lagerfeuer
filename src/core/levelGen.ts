@@ -2,7 +2,7 @@
 // отсев сидов номинальным прогоном.
 
 import { balance } from '../config/balance.ts';
-import { type LevelId, levelById } from '../config/levels.ts';
+import { type LevelId, levelFor } from '../config/levels.ts';
 import { type Cell, type Side, SIDES, nearFires, oppositeCorner } from './clearing.ts';
 import { eyesLevel } from './fires.ts';
 import { nominalSurvives } from './nominal.ts';
@@ -11,17 +11,31 @@ import { type Fire, type GameState, type Log, type Shelter, emptyStats } from '.
 import { makeGustSchedule } from './wind.ts';
 
 export interface Pace {
-  /** Медиана времени ответа, секунд. */
+  /** Медиана времени ответа, секунд (для правил — с поправкой на разброс, shared/pace.ts). */
   tMed: number;
   /** Доля верных ответов. */
   p: number;
 }
 
-export interface GenOptions {
+/** Какая это ночь: вид вопросов и помощь после неудач. */
+export interface NightOptions {
+  /** Ночь с заданиями генератора: свои slotA и стартовое топливо, свой потолок длины. */
+  generated?: boolean;
+  /** Помощь после неудач подряд: 0 — нет, 1–2 — угли тлеют дольше (balance.assist). */
+  assist?: number;
+}
+
+export interface GenOptions extends NightOptions {
   /** Не отсеивать сиды номинальным прогоном (тесты, тест темноты). */
   skipNominal?: boolean;
   /** Сообщение о растянутых порывах (по умолчанию console.warn). */
   warn?: (msg: string) => void;
+}
+
+/** Во сколько раз дольше тлеют угли при такой ступени помощи. */
+export function assistEmberMul(assist: number): number {
+  const steps = balance.assist.emberMul;
+  return assist > 0 ? steps[Math.min(steps.length, assist) - 1] : 1;
 }
 
 export interface GenResult {
@@ -45,11 +59,19 @@ function startLogs(fuel: number): Log[] {
 }
 
 /** Один уровень по сиду, без проверки номинальным прогоном. */
-export function buildLevel(levelId: LevelId, seed: number, pace: Pace, stretch = 1): GameState {
-  const level = levelById(levelId);
+export function buildLevel(
+  levelId: LevelId,
+  seed: number,
+  pace: Pace,
+  stretch = 1,
+  night: NightOptions = {},
+): GameState {
+  const generated = night.generated === true;
+  const level = levelFor(levelId, generated);
   const rng = mulberry32(seed);
   const A = unitSeconds(pace.tMed);
-  const nightA = Math.min(level.nightA, balance.nightMaxSec / A);
+  const maxSec = generated ? balance.nightMaxSecGenerated : balance.nightMaxSec;
+  const nightA = Math.min(level.nightA, maxSec / A);
 
   const pile = randInt(rng, 4) as Cell;
   const tent = oppositeCorner(pile);
@@ -112,6 +134,8 @@ export function buildLevel(levelId: LevelId, seed: number, pace: Pace, stretch =
     tMed: pace.tMed,
     t: 0,
     nightA,
+    emberA: balance.emberA * assistEmberMul(night.assist ?? 0),
+    generated,
     pile,
     tent,
     fires,
@@ -144,9 +168,9 @@ export function generateLevel(
   opts: GenOptions = {},
 ): GenResult {
   if (opts.skipNominal)
-    return { state: buildLevel(levelId, seed, pace), attempts: 1, stretched: false };
+    return { state: buildLevel(levelId, seed, pace, 1, opts), attempts: 1, stretched: false };
   for (let attempt = 0; attempt < balance.nominalAttempts; attempt++) {
-    const s = buildLevel(levelId, attempt === 0 ? seed : hashSeed(seed, attempt), pace);
+    const s = buildLevel(levelId, attempt === 0 ? seed : hashSeed(seed, attempt), pace, 1, opts);
     if (nominalSurvives(s)) return { state: s, attempts: attempt + 1, stretched: false };
   }
   const s = buildLevel(
@@ -154,6 +178,7 @@ export function generateLevel(
     hashSeed(seed, balance.nominalAttempts),
     pace,
     balance.nominalWindStretch,
+    opts,
   );
   (opts.warn ?? console.warn)(
     `bonfires: level ${String(levelId)} seed ${seed}: no seed passed the nominal run, wind gaps stretched by 20%`,

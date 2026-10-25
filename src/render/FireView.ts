@@ -95,6 +95,8 @@ interface EyePair {
 
 export interface FireFrame {
   fire: Fire;
+  /** Сколько тлеют угли этой ночью, единиц A (state.emberA). */
+  emberA: number;
   /** Порыв дует прямо сейчас. */
   gust: boolean;
   /** Порыв объявлен (листья, значок). */
@@ -376,7 +378,7 @@ export class FireView {
     }
     const smooth = 1 + Math.sin(timeMs / 470 + this.side) * light.fireFlickerSmooth;
     this.flicker = fr.reducedMotion ? 1 : this.flickerJit * smooth;
-    const emberFrac = embers ? Math.max(0, (f.embers ?? 0) / balance.emberA) : 0;
+    const emberFrac = embers ? Math.max(0, (f.embers ?? 0) / fr.emberA) : 0;
     this.emberLight = embers ? 0.35 + 0.65 * emberFrac : 0;
 
     // Поленья шалашиком.

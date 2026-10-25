@@ -430,7 +430,7 @@ function processDue(s: GameState, ev: GameEvent[]): void {
       if (f.fuel <= EPS) {
         f.fuel = 0;
         f.logs = [];
-        f.embers = balance.emberA;
+        f.embers = s.emberA;
         f.lowLevel = 2;
         f.countdown = 99;
         s.stats.embersCount++;
@@ -478,7 +478,7 @@ function lose(s: GameState, side: Side, ev: GameEvent[]): void {
   s.status = 'lost';
   s.stars = 0;
   const wind = s.level.wind;
-  const recent = wind ? 2 * wind.dur + balance.emberA : 0;
+  const recent = wind ? 2 * wind.dur + s.emberA : 0;
   const gust = s.gusts.some(
     (g) => g.side === side && g.phase >= 2 && g.start <= s.t && g.end >= s.t - recent,
   );

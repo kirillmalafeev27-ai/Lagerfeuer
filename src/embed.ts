@@ -8,7 +8,9 @@ import { App, type FinishResult, type MountOptions } from './ui/App.ts';
 
 export type { FinishResult, MountOptions };
 export type { Question, QuestionProvider } from './shared/questions/types.ts';
+export type { QuizConfig } from './shared/questions/topics.ts';
 export { LocalBankProvider } from './shared/questions/LocalBankProvider.ts';
+export { AiQuestionProvider } from './shared/questions/AiQuestionProvider.ts';
 
 export function mountBonfires(container: HTMLElement, options: MountOptions): { destroy(): void } {
   const app = new App(container, options);

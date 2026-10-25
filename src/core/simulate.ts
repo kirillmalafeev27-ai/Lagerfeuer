@@ -9,14 +9,35 @@ import type { GameState } from './state.ts';
 type PlanFn = (s: GameState, ev: GameEvent[]) => void;
 
 /** Время ответа, секунд: логнормальное с медианой T_med и σ = answerSigma. */
-export function sampleAnswerSec(rng: Rng, tMed: number): number {
-  return logNormal(rng, tMed, balance.answerSigma);
+export function sampleAnswerSec(
+  rng: Rng,
+  tMed: number,
+  sigma: number = balance.answerSigma,
+): number {
+  return logNormal(rng, tMed, sigma);
+}
+
+/**
+ * Как отвечает игрок. Игра этого не знает: её темп (state.tMed, state.p) — оценка по прошлым
+ * ответам (shared/pace.ts), с поправкой на разброс и запасом.
+ */
+export interface Player {
+  /** Медиана времени ответа, секунд. */
+  tMed: number;
+  /** Разброс логнормали времени ответа. */
+  sigma: number;
+  /** Доля верных ответов. */
+  p: number;
+  /** Сколько виден верный вариант после ошибки, секунд (по умолчанию wrongFeedbackMs). */
+  wrongSec?: number;
 }
 
 export interface PlayOptions {
   /** Остановиться через столько единиц (для прогонов планировщика). */
   horizonA?: number;
   onEvents?: (events: GameEvent[]) => void;
+  /** Модель игрока; по умолчанию игра знает его точно: T_med и p из состояния, σ = answerSigma. */
+  player?: Player;
 }
 
 /**
@@ -25,15 +46,16 @@ export interface PlayOptions {
  */
 export function playNight(s: GameState, plan: PlanFn, rng: Rng, opts: PlayOptions = {}): void {
   const A = s.A;
+  const who: Player = opts.player ?? { tMed: s.tMed, sigma: balance.answerSigma, p: s.p };
   const tEnd = opts.horizonA !== undefined ? s.t + opts.horizonA : Infinity;
   const swapA = balance.questionSwapMs / 1000 / A;
-  const wrongA = balance.wrongFeedbackMs / 1000 / A;
+  const wrongA = (who.wrongSec ?? balance.wrongFeedbackMs / 1000) / A;
   const ev: GameEvent[] = [];
   const flush = () => {
     if (opts.onEvents && ev.length) opts.onEvents(ev.splice(0));
     else ev.length = 0;
   };
-  let answerSec = sampleAnswerSec(rng, s.tMed);
+  let answerSec = sampleAnswerSec(rng, who.tMed, who.sigma);
   let nextAt = s.t + answerSec / A;
   for (let guard = 0; guard < 100000 && s.status === 'playing' && s.t < tEnd; guard++) {
     if (s.hero.ready) {
@@ -43,7 +65,7 @@ export function playNight(s: GameState, plan: PlanFn, rng: Rng, opts: PlayOption
         flush();
         continue;
       }
-      answerSec = sampleAnswerSec(rng, s.tMed);
+      answerSec = sampleAnswerSec(rng, who.tMed, who.sigma);
       nextAt = s.t + swapA + answerSec / A;
       flush();
       continue;
@@ -53,10 +75,10 @@ export function playNight(s: GameState, plan: PlanFn, rng: Rng, opts: PlayOption
       flush();
       break;
     }
-    const correct = rng() < s.p;
+    const correct = rng() < who.p;
     plan(s, ev);
     apply(s, { type: 'ANSWER', correct, timeMs: answerSec * 1000 }, ev);
-    answerSec = sampleAnswerSec(rng, s.tMed);
+    answerSec = sampleAnswerSec(rng, who.tMed, who.sigma);
     nextAt = s.t + (correct ? swapA : wrongA + swapA) + answerSec / A;
     flush();
   }

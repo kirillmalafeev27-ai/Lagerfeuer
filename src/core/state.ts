@@ -88,6 +88,10 @@ export interface GameState {
   t: number;
   /** Длина ночи с учётом ограничения nightMaxSec, единиц A. */
   nightA: number;
+  /** Сколько тлеют угли, единиц A: больше emberA — помощь после неудач (balance.assist). */
+  emberA: number;
+  /** Ночь с заданиями генератора: свои параметры уровня и потолок длины (levels.generated). */
+  generated: boolean;
   pile: Cell;
   tent: Cell;
   fires: Fire[];
