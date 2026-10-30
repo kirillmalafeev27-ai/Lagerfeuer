@@ -23,14 +23,20 @@ import { BootScene } from '../scenes/BootScene.ts';
 import { GameScene, type SceneHost, type WorldTarget } from '../scenes/GameScene.ts';
 import { Mixer } from '../shared/audio/mixer.ts';
 import { type Layout, chalkThemeImages, createLayout } from '../shared/layout.ts';
-import { PaceTracker, median } from '../shared/pace.ts';
+import { type PaceSnapshot, PaceTracker, median } from '../shared/pace.ts';
 import { QuestionPanel } from '../shared/QuestionPanel.ts';
 import {
   type ConfigurableQuestionProvider,
   isConfigurable,
 } from '../shared/questions/AiQuestionProvider.ts';
 import { type Speaker, createSpeaker } from '../shared/questions/speech.ts';
-import { type QuizConfig, isVocabTopic, sanitizeQuizConfig } from '../shared/questions/topics.ts';
+import {
+  CEFR_LEVELS,
+  type CefrLevel,
+  type QuizConfig,
+  isVocabTopic,
+  sanitizeQuizConfig,
+} from '../shared/questions/topics.ts';
 import type { Question, QuestionProvider } from '../shared/questions/types.ts';
 import { type KeyValueStorage, localKeyValue, readJson, writeJson } from '../shared/storage.ts';
 import { GearWidget } from './GearWidget.ts';
@@ -501,16 +507,46 @@ export class App {
     this.layout.root.classList.toggle('is-gen', kind === 'generated');
   }
 
-  /** Учёт темпа для вида вопросов: банк или задания генератора текущего уровня A1–C1. */
-  private paceFor(kind: QuestionKind): PaceTracker {
-    const cefr = this.quiz?.config()?.level ?? 'B1';
-    const key = paceKeyFor(kind, cefr);
+  /** Выбраны только свои наборы слов (без аудирования): у их заданий свой темп. */
+  private vocabOnly(): boolean {
+    const cfg = this.quiz?.config();
+    return !!cfg && !cfg.listening && cfg.grammarTopics.every(isVocabTopic);
+  }
+
+  /**
+   * Учёт темпа для вида вопросов: банк, свои наборы слов или задания генератора уровня A1–C1
+   * (выбранного).
+   */
+  private paceFor(kind: QuestionKind, cefr = this.quiz?.config()?.level ?? 'B1'): PaceTracker {
+    const vocab = kind === 'generated' && this.vocabOnly();
+    const key = paceKeyFor(kind, cefr, vocab);
     let t = this.paces.get(key);
     if (!t) {
-      t = new PaceTracker(this.paceStore, paceConfigFor(kind, cefr), key);
+      t = new PaceTracker(this.paceStore, paceConfigFor(kind, cefr, vocab), key);
       this.paces.set(key, t);
     }
     return t;
+  }
+
+  /**
+   * Темп ночи. Первая ночь с заданиями генератора на новом уровне A1–C1 берёт темп с ближайшего
+   * уровня, где ученик уже отвечал: это тот же ученик и те же форматы, а значение по умолчанию —
+   * только догадка.
+   */
+  private roundPace(kind: QuestionKind): PaceSnapshot {
+    const own = this.paceFor(kind);
+    if (kind === 'generated' && !own.known() && !this.vocabOnly()) {
+      const cefr = this.quiz?.config()?.level ?? 'B1';
+      const i = CEFR_LEVELS.indexOf(cefr as CefrLevel);
+      const near = CEFR_LEVELS.filter((l) => l !== cefr).sort(
+        (a, b) => Math.abs(CEFR_LEVELS.indexOf(a) - i) - Math.abs(CEFR_LEVELS.indexOf(b) - i),
+      );
+      for (const l of near) {
+        const t = this.paceFor(kind, l);
+        if (t.known()) return t.snapshot();
+      }
+    }
+    return own.snapshot();
   }
 
   /** Помощь после неудач подряд на уровне: 0, 1 или 2 ступени (balance.assist). */
@@ -581,7 +617,7 @@ export class App {
     // Темп — по виду вопросов этой ночи (3, game/pacing.ts); у ночи с заданиями генератора —
     // свои параметры уровня и потолок длины, а после неудач подряд угли тлеют дольше.
     const kind = this.roundKind();
-    const pace = this.paceFor(kind).snapshot();
+    const pace = this.roundPace(kind);
     const assist = this.assistFor(id);
     const forced = this.opts.dev ? Number(new URLSearchParams(location.search).get('seed')) : NaN;
     const seed =

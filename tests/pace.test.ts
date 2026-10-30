@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { balance, riskBlue } from '../src/config/balance.ts';
+import { balance } from '../src/config/balance.ts';
 import { levelById, LEVEL_IDS } from '../src/config/levels.ts';
 import { assistEmberMul, buildLevel, generateLevel } from '../src/core/levelGen.ts';
 import { advance } from '../src/core/rules.ts';
@@ -36,15 +36,15 @@ describe('учёт темпа (раздел 3)', () => {
     expect(s.sigma).toBe(0.5);
   });
 
-  it('задания генератора: своё значение по умолчанию на уровень, с поправкой на разброс', () => {
+  it('задания генератора: своё значение по умолчанию на уровень, без запаса', () => {
     const g = balance.paceGenerated;
     for (const cefr of ['A1', 'B1', 'C1']) {
       const s = new PaceTracker(memory(), paceConfigFor('generated', cefr)).snapshot();
-      const f = Math.exp(balance.pace.spreadGain * (g.defaultSigma - balance.pace.refSigma));
       expect(s.median).toBe(g.defaultTMedByLevel[cefr]);
-      expect(s.tMed).toBeCloseTo(g.defaultTMedByLevel[cefr] * f * g.allowance);
+      expect(s.tMed).toBeCloseTo(g.defaultTMedByLevel[cefr]);
       expect(s.p).toBe(0.7);
     }
+    expect(g.defaultTMedByLevel.B1).toBe(12);
   });
 
   it('потолок медианы: 10 с у банка, 30 с у заданий генератора', () => {
@@ -73,14 +73,49 @@ describe('учёт темпа (раздел 3)', () => {
     expect(gen.snapshot().p).toBeCloseTo(0.6);
   });
 
-  it('разброс оценивается по ответам: σ 0.5 — поправки почти нет, σ 0.8 — ночь щадящая', () => {
+  it('разброс оценивается по ответам, но на темп правил не влияет: T_эфф = медиана', () => {
     const calm = trackerWith('bank', 20, 5, 0.5, 3).snapshot();
-    const wide = trackerWith('bank', 20, 5, 0.8, 3).snapshot();
+    const wide = trackerWith('generated', 20, 12, 0.8, 3).snapshot();
     expect(calm.sigma).toBeGreaterThan(0.4);
     expect(calm.sigma).toBeLessThan(0.62);
     expect(wide.sigma).toBeGreaterThan(0.65);
-    expect(wide.tMed / wide.median).toBeGreaterThan(1.15);
-    expect(spreadFactor(0.5, balance.pace)).toBe(1);
+    expect(calm.tMed).toBe(calm.median);
+    expect(wide.tMed).toBe(wide.median);
+    expect(spreadFactor(0.9, balance.pace)).toBe(1);
+  });
+
+  it('known(): своя медиана — с пяти ответов', () => {
+    const t = new PaceTracker(memory(), paceConfigFor('generated'), paceKeyFor('generated'));
+    for (let i = 0; i < 4; i++) t.record(8000, true);
+    expect(t.known()).toBe(false);
+    expect(t.snapshot().median).toBe(12);
+    t.record(8000, true);
+    expect(t.known()).toBe(true);
+    expect(t.snapshot().median).toBe(8);
+  });
+
+  it('свои наборы слов — свой учёт на всех уровнях, по умолчанию 7 с, а не 12', () => {
+    expect(paceKeyFor('generated', 'B1', true)).toBe('series:pace:gen:vocab');
+    expect(paceKeyFor('generated', 'C1', true)).toBe('series:pace:gen:vocab');
+    expect(paceKeyFor('bank', 'B1', true)).toBe(SERIES_PACE_KEY);
+    const store = memory();
+    const vocab = new PaceTracker(
+      store,
+      paceConfigFor('generated', 'B1', true),
+      paceKeyFor('generated', 'B1', true),
+    );
+    expect(vocab.snapshot().tMed).toBe(balance.paceGenerated.defaultTMedVocab);
+    for (let i = 0; i < 5; i++) vocab.record(5000, true);
+    expect(vocab.snapshot().tMed).toBe(5);
+    // Ответы на своих наборах слов не ускоряют ночь с предложениями генератора того же уровня.
+    const gen = new PaceTracker(
+      store,
+      paceConfigFor('generated', 'B1'),
+      paceKeyFor('generated', 'B1'),
+    );
+    expect(gen.known()).toBe(false);
+    expect(gen.snapshot().tMed).toBe(12);
+    expect(paceConfigFor('bank', 'B1', true)).toBe(balance.pace);
   });
 
   it('одна долгая задумчивость не раздувает разброс и не сдвигает медиану', () => {
@@ -93,46 +128,6 @@ describe('учёт темпа (раздел 3)', () => {
   });
 });
 
-describe('поправка на разброс держит задуманные пороги колец (2.8)', () => {
-  /** Доля опозданий n действий при r = need / доступное, для игрока с разбросом σ. */
-  function late(n: number, r: number, sigma: number, runs: number, seed: number): number {
-    const rng = mulberry32(seed);
-    const tMed = 5;
-    const p = 0.8;
-    const A = tMed * spreadFactor(sigma, balance.pace) + balance.unitOverheadSec;
-    const avail = (n * A) / (p * r);
-    const swap = balance.questionSwapMs / 1000;
-    const wrong = balance.wrongFeedbackMs / 1000;
-    let k = 0;
-    for (let i = 0; i < runs; i++) {
-      let t = 0;
-      let got = 0;
-      while (got < n && t <= avail) {
-        t += logNormal(rng, tMed, sigma);
-        if (rng() < p) {
-          got++;
-          if (got < n) t += swap;
-        } else t += wrong + swap;
-      }
-      if (t > avail) k++;
-    }
-    return k / runs;
-  }
-
-  it('на границе голубого опаздывают 3.5–9%, малинового — 17–31% при σ от 0.4 до 0.9', () => {
-    for (const sigma of [0.4, 0.65, 0.9]) {
-      for (const n of [1, 3, 6]) {
-        const blue = late(n, riskBlue(n), sigma, 8000, hashSeed(n, sigma * 100));
-        const red = late(n, balance.riskRed, sigma, 8000, hashSeed(n, sigma * 100, 2));
-        expect(blue, `σ ${sigma}, n ${n}`).toBeGreaterThan(0.035);
-        expect(blue, `σ ${sigma}, n ${n}`).toBeLessThan(0.09);
-        expect(red, `σ ${sigma}, n ${n}`).toBeGreaterThan(0.17);
-        expect(red, `σ ${sigma}, n ${n}`).toBeLessThan(0.31);
-      }
-    }
-  });
-});
-
 describe('ночь с заданиями генератора', () => {
   const pace = { tMed: 14, p: 0.7 };
 
@@ -142,7 +137,6 @@ describe('ночь с заданиями генератора', () => {
       const s = buildLevel(id, 7, pace, 1, { generated: true });
       expect(s.generated).toBe(true);
       expect(s.level.slotA).toBe(l.generated.slotA);
-      expect(s.level.slotA).toBeGreaterThan(l.slotA);
       for (const f of s.fires) {
         expect(f.fuel).toBeGreaterThanOrEqual(l.generated.startFuel[0] - 1e-9);
         expect(f.fuel).toBeLessThanOrEqual(l.generated.startFuel[1] + 1e-9);
@@ -166,18 +160,18 @@ describe('ночь с заданиями генератора', () => {
     }
   });
 
-  it('баланс: типичный ученик проходит, дуб окупается, знание решает (симуляция, 14)', () => {
-    const typical = genOptions();
-    const win = (level: 1 | 4, bot: 'mixed' | 'birch', p = 0.7) => {
-      const r = simulate(level, bot, 500, 12, p, 3, typical);
+  it('баланс как у банка: ученик с 80% верных — цели раздела 14, дуб окупается, знание решает', () => {
+    const good = genOptions({ sigma: 0.6 });
+    const win = (level: 1 | 4, bot: 'mixed' | 'birch', p = 0.8) => {
+      const r = simulate(level, bot, 500, 10, p, 3, good);
       return r.win / r.runs;
     };
-    expect(win(1, 'mixed')).toBeGreaterThan(0.95);
+    expect(win(1, 'mixed')).toBeGreaterThan(0.97);
     const mixed = win(4, 'mixed');
-    expect(mixed).toBeGreaterThan(0.76);
-    expect(mixed).toBeLessThan(0.93);
-    expect(win(4, 'birch')).toBeLessThan(mixed - 0.05);
-    expect(win(4, 'mixed', 0.85)).toBeGreaterThan(win(4, 'mixed', 0.6) + 0.1);
+    expect(mixed).toBeGreaterThan(0.72);
+    expect(mixed).toBeLessThan(0.9);
+    expect(win(4, 'birch')).toBeLessThan(mixed - 0.1);
+    expect(win(4, 'mixed', 0.9)).toBeGreaterThan(win(4, 'mixed', 0.7) + 0.15);
   });
 });
 

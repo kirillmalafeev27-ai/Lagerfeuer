@@ -17,8 +17,10 @@ export interface WindConfig {
 
 /**
  * Ночь с заданиями генератора (формат Morskoy). Она короче в единицах A: потолок по времени
- * (balance.nightMaxSecGenerated), а задание-предложение читается долго. Поэтому костры горят
- * медленнее, а дров на старте меньше — напряжение с первых минут, и дуб снова окупается.
+ * (balance.nightMaxSecGenerated), а задание-предложение читается долго, и дров со старта
+ * хватало бы почти на всю ночь. Поэтому дров на старте меньше — напряжение с первых минут, и
+ * дуб снова окупается, — а slotA подобран так, чтобы ученик с 80% верных выигрывал столько же,
+ * сколько эталон на банке (DECISIONS.md, «Сложность с заданиями генератора»).
  */
 export interface GeneratedNight {
   slotA: number;
@@ -40,9 +42,8 @@ export interface LevelConfig {
 
 const START_FUEL: readonly [number, number] = [1.2, 2.4];
 const START_FUEL_L1: readonly [number, number] = [1.5, 2.5];
-/** Стартовое топливо ночей с заданиями генератора: 70% от обычного. */
+/** Стартовое топливо ночей с заданиями генератора: 70% от обычного (ночь 1 — как у банка). */
 const GEN_FUEL: readonly [number, number] = [0.84, 1.68];
-const GEN_FUEL_L1: readonly [number, number] = [1.05, 1.75];
 
 export const levels: readonly LevelConfig[] = [
   {
@@ -55,7 +56,7 @@ export const levels: readonly LevelConfig[] = [
     open: 0,
     hints: 'all',
     startFuel: START_FUEL_L1,
-    generated: { slotA: 13.8, startFuel: GEN_FUEL_L1 },
+    generated: { slotA: 12.0, startFuel: START_FUEL_L1 },
   },
   {
     id: 2,
@@ -67,7 +68,7 @@ export const levels: readonly LevelConfig[] = [
     open: 0,
     hints: 'all',
     startFuel: START_FUEL,
-    generated: { slotA: 13.2, startFuel: GEN_FUEL },
+    generated: { slotA: 12.7, startFuel: GEN_FUEL },
   },
   {
     id: 3,
@@ -91,7 +92,7 @@ export const levels: readonly LevelConfig[] = [
     open: 1,
     hints: 'targetRing',
     startFuel: START_FUEL,
-    generated: { slotA: 11.3, startFuel: GEN_FUEL },
+    generated: { slotA: 10.8, startFuel: GEN_FUEL },
   },
   {
     id: 5,
@@ -103,7 +104,7 @@ export const levels: readonly LevelConfig[] = [
     open: 1,
     hints: 'targetRing',
     startFuel: START_FUEL,
-    generated: { slotA: 11.0, startFuel: GEN_FUEL },
+    generated: { slotA: 10.7, startFuel: GEN_FUEL },
   },
   {
     id: 6,
@@ -115,7 +116,7 @@ export const levels: readonly LevelConfig[] = [
     open: 2,
     hints: 'oak',
     startFuel: START_FUEL,
-    generated: { slotA: 10.8, startFuel: GEN_FUEL },
+    generated: { slotA: 10.6, startFuel: GEN_FUEL },
   },
   {
     id: 'inf',
@@ -127,7 +128,7 @@ export const levels: readonly LevelConfig[] = [
     open: 2,
     hints: 'none',
     startFuel: START_FUEL,
-    generated: { slotA: 10.0, startFuel: GEN_FUEL },
+    generated: { slotA: 9.5, startFuel: GEN_FUEL },
   },
 ];
 

@@ -1,6 +1,6 @@
 // Симуляция ночей ботами на настоящем движке правил, без графики (раздел 14).
 // npm run sim -- --level 4 --runs 2000 [--bot mixed|birch|oak|planner|all] [--tmed 5] [--p 0.8]
-//   [--mode bank|gen] [--cefr B1] [--history 20] [--sigma 0.65] [--wrong 1.8] [--assist 1]
+//   [--mode bank|gen] [--cefr B1] [--history 20] [--sigma 0.65] [--wrong 1.8] [--assist 1] [--vocab]
 // Без --mode игра знает темп игрока точно (σ = 0.5) — так проверяются цели раздела 14 (--check).
 // Цели ночей с заданиями генератора: --check-gen.
 // С --mode игрок отвечает по своей модели (--tmed, --sigma, --p), а темп ночи игра выставляет
@@ -41,6 +41,8 @@ export interface SimOptions {
   wrongSec: number;
   /** Помощь после неудач: 0, 1 или 2 ступени (balance.assist). */
   assist: number;
+  /** Выбраны только свои наборы слов: своё значение темпа по умолчанию (game/pacing.ts). */
+  vocab?: boolean;
 }
 
 function memoryStorage(): KeyValueStorage {
@@ -50,7 +52,7 @@ function memoryStorage(): KeyValueStorage {
 
 /** Темп, который игра выставит ночи, зная `history` прошлых ответов игрока. */
 export function gamePaceFor(seed: number, player: Player, o: SimOptions): Pace {
-  const tracker = new PaceTracker(memoryStorage(), paceConfigFor(o.mode, o.cefr));
+  const tracker = new PaceTracker(memoryStorage(), paceConfigFor(o.mode, o.cefr, o.vocab));
   const rng = mulberry32(hashSeed(seed, 0x9ace));
   for (let i = 0; i < o.history; i++) {
     const t = sampleAnswerSec(rng, player.tMed, player.sigma);
@@ -98,6 +100,7 @@ function parseArgs(argv: string[]): Args {
                 (gen ? balance.wrongFeedbackGeneratedMs : balance.wrongFeedbackMs) / 1000,
             ),
             assist: Number(get('assist') ?? 0),
+            vocab: argv.includes('--vocab'),
           },
   };
 }
@@ -296,68 +299,63 @@ export function genOptions(o: Partial<SimOptions> = {}): SimOptions {
 
 /**
  * Цели для ночей с заданиями генератора (DECISIONS.md, «Сложность с заданиями генератора»).
- * Эталон — типичный ученик: 12 с на задание, σ 0.65, верно 70%; игра знает 20 его ответов.
- * Цели раздела 14 — с поправкой «лучше проходимо, чем слишком сложно».
+ * Ночь с заданиями так же трудна, как ночь банка: ученик с 80% верных (10 с на задание, σ 0.6)
+ * выполняет те же цели раздела 14, что эталон на банке. Игра знает 20 его прошлых ответов.
  */
 export function checkGenerated(runs: number, plannerRuns: number, seed: number): boolean {
   const range: Record<string, [number, number]> = {
     '1': [97, 100],
-    '2': [95, 100],
+    '2': [97, 100],
     '3': [88, 97],
-    '4': [80, 90],
-    '5': [76, 88],
-    '6': [72, 85],
-    inf: [60, 75],
+    '4': [78, 90],
+    '5': [72, 85],
+    '6': [66, 80],
+    inf: [50, 65],
   };
   const results: Array<{ name: string; ok: boolean; detail: string }> = [];
   const add = (name: string, ok: boolean, detail: string) => results.push({ name, ok, detail });
   const win = (r: BotReport) => (100 * r.win) / r.runs;
   const s3 = (r: BotReport) => (100 * r.stars[3]) / r.runs;
+  const good = genOptions({ sigma: 0.6 });
   const typical = genOptions();
   for (const level of LEVEL_IDS) {
-    const m = simulate(level, 'mixed', runs, 12, 0.7, seed, typical);
+    const m = simulate(level, 'mixed', runs, 10, 0.8, seed, good);
     const [lo, hi] = range[String(level)];
     add(
-      `gen mixed L${String(level)} in ${lo}–${hi}%`,
+      `gen mixed (p 0.8) L${String(level)} in ${lo}–${hi}%`,
       win(m) >= lo && win(m) <= hi,
       `${win(m).toFixed(1)}%`,
     );
     if (level !== 1 && level !== 2 && level !== 3) {
-      const b = simulate(level, 'birch', runs, 12, 0.7, seed, typical);
+      const b = simulate(level, 'birch', runs, 10, 0.8, seed, good);
       add(
-        `gen birch-only L${String(level)} ≥8 pts below mixed`,
-        win(b) <= win(m) - 8,
+        `gen birch-only L${String(level)} ≥10 pts below mixed`,
+        win(b) <= win(m) - 10,
         `${win(b).toFixed(1)}% vs ${win(m).toFixed(1)}%`,
       );
-      const pl = simulate(level, 'planner', plannerRuns, 12, 0.7, seed, typical);
+      const pl = simulate(level, 'planner', plannerRuns, 10, 0.8, seed, good);
       add(
-        `gen planner L${String(level)} ≥ mixed − 4, ★★★ ≥ 10%`,
-        win(pl) >= win(m) - 4 && s3(pl) >= 10,
+        `gen planner L${String(level)} ≥ mixed − 3, ★★★ ≥ 10%`,
+        win(pl) >= win(m) - 3 && s3(pl) >= 10,
         `${win(pl).toFixed(1)}% vs ${win(m).toFixed(1)}%, ★★★ ${s3(pl).toFixed(1)}%`,
       );
     }
   }
-  // Знание окупается: при том же темпе верные ответы решают.
-  const p6 = simulate(6, 'mixed', runs, 12, 0.6, seed, typical);
-  const p8 = simulate(6, 'mixed', runs, 12, 0.8, seed, typical);
+  // Знание окупается: типичный ученик (70% верных) заметно ниже, сильный (90%) — выше.
+  const t4 = simulate(4, 'mixed', runs, 12, 0.7, seed, typical);
+  const g4 = simulate(4, 'mixed', runs, 10, 0.8, seed, good);
+  const s4 = simulate(4, 'mixed', runs, 9, 0.9, seed, good);
   add(
-    'gen L6: p=0.8 ≥ p=0.6 + 15 pts',
-    win(p8) >= win(p6) + 15,
-    `${win(p8).toFixed(1)}% vs ${win(p6).toFixed(1)}%`,
+    'gen L4: p 0.7 ≥ 8 pts below p 0.8',
+    win(t4) <= win(g4) - 8,
+    `${win(t4).toFixed(1)}% vs ${win(g4).toFixed(1)}%`,
   );
-  // Первая ночь (значения по умолчанию) проходима и для медленного новичка A1.
-  for (const level of [1, 2, 3] as const) {
-    const f = simulate(
-      level,
-      'mixed',
-      runs,
-      15,
-      0.65,
-      seed,
-      genOptions({ cefr: 'A1', history: 0 }),
-    );
-    add(`gen first night A1, 15 s, L${level} ≥ 88%`, win(f) >= 88, `${win(f).toFixed(1)}%`);
-  }
+  add('gen L4: p 0.9 ≥ 88%', win(s4) >= 88, `${win(s4).toFixed(1)}%`);
+  // Начало не непосильно и для типичного ученика — и в первую ночь, по значениям по умолчанию.
+  const t1 = simulate(1, 'mixed', runs, 12, 0.7, seed, typical);
+  add('gen L1: p 0.7 ≥ 95%', win(t1) >= 95, `${win(t1).toFixed(1)}%`);
+  const f1 = simulate(1, 'mixed', runs, 12, 0.7, seed, genOptions({ history: 0 }));
+  add('gen first night L1: p 0.7 ≥ 95%', win(f1) >= 95, `${win(f1).toFixed(1)}%`);
   // Помощь после неудач заметна у слабого ученика.
   const weak = genOptions({ sigma: 0.7 });
   const w0 = simulate(6, 'mixed', runs, 15, 0.6, seed, weak);

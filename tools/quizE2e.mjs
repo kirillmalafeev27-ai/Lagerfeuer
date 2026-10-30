@@ -338,6 +338,15 @@ try {
       st.generated && st.gen,
       `набор слов играется как ночь с заданиями (${JSON.stringify(st)})`,
     );
+    const pace = await page.evaluate(() => ({
+      vocab: JSON.parse(localStorage.getItem('series:pace:gen:vocab') ?? '{"times":[]}').times
+        .length,
+      level: localStorage.getItem('series:pace:gen:B1'),
+    }));
+    check(
+      pace.vocab === 5 && pace.level === null,
+      `темп своего набора слов — под своим ключом, а не уровня B1 (${JSON.stringify(pace)})`,
+    );
     await page.screenshot({ path: `${out}/night-vocab.png` });
     check(errors.length === 0, `набор слов: нет ошибок страницы ${errors.slice(0, 3).join(' | ')}`);
     await page.close();
