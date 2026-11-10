@@ -482,5 +482,101 @@
     "options": ["Lampen", "Lampes", "Lämpe", "Lampe"],
     "optionsLang": "de",
     "correctIndex": 0
+  },
+  {
+    "id": "kas-001",
+    "prompt": "___ Wolf heult im Wald.",
+    "promptLang": "de",
+    "options": ["Der", "Den", "Dem", "Des"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-002",
+    "prompt": "Im Zelt wartet ___ Freund.",
+    "promptLang": "de",
+    "options": ["mein", "meinen", "meinem", "meines"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-003",
+    "prompt": "Ich sehe ___ Wolf.",
+    "promptLang": "de",
+    "options": ["den", "dem", "der", "des"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-004",
+    "prompt": "Wir suchen ___ Schlafsack.",
+    "promptLang": "de",
+    "options": ["einen", "ein", "einem", "eines"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-005",
+    "prompt": "Ich rufe ___ Lehrer an.",
+    "promptLang": "de",
+    "options": ["den", "dem", "der", "des"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-006",
+    "prompt": "Ich helfe ___ Freund.",
+    "promptLang": "de",
+    "options": ["dem", "den", "der", "des"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-007",
+    "prompt": "Das Zelt gehört ___ Oma.",
+    "promptLang": "de",
+    "options": ["der", "die", "dem", "den"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-008",
+    "prompt": "Ich schenke ___ Kind eine Lampe.",
+    "promptLang": "de",
+    "options": ["dem", "das", "des", "den"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-009",
+    "prompt": "Das ist das Zelt ___ Lehrers.",
+    "promptLang": "de",
+    "options": ["des", "dem", "den", "der"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-010",
+    "prompt": "Das ist die Taschenlampe ___ Mutter.",
+    "promptLang": "de",
+    "options": ["der", "die", "dem", "den"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-011",
+    "prompt": "Ich lege das Holz auf ___ Feuer.",
+    "promptLang": "de",
+    "options": ["das", "dem", "des", "den"],
+    "optionsLang": "de",
+    "correctIndex": 0
+  },
+  {
+    "id": "kas-012",
+    "prompt": "Das Holz liegt auf ___ Feuer.",
+    "promptLang": "de",
+    "options": ["dem", "das", "des", "den"],
+    "optionsLang": "de",
+    "correctIndex": 0
   }
 ]

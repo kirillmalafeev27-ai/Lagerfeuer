@@ -1,7 +1,8 @@
 /**
  * Темы генерации вопросов — те же, что в Morskoy (public/js/questions.js): уровень, лексическая
  * тема и грамматические темы. Названия тем — немецкие и уходят в API как есть; у каждой есть
- * правила в server/generation/grammarRules.ts (это проверяет тест).
+ * правила в server/generation/grammarRules.ts (это проверяет тест). Тема «Kasus unterscheiden» —
+ * единственная, которой нет в Morskoy.
  */
 
 export const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
@@ -35,6 +36,7 @@ export const GRAMMAR_GROUPS: readonly { id: GrammarGroupId; topics: readonly str
       'Akkusativ',
       'Dativ',
       'Genitiv',
+      'Kasus unterscheiden',
       'N-Deklination',
       'Pronomen',
       'Pronomen in Akkusativ',

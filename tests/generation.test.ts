@@ -63,6 +63,85 @@ describe('правила тем', () => {
   });
 });
 
+describe('тема «Kasus unterscheiden»', () => {
+  const topic = 'Kasus unterscheiden';
+
+  it('стоит в списке тем клиента, а синонимы и транслитерация находят то же правило', () => {
+    expect(GRAMMAR_TOPICS).toContain(topic);
+    for (const alias of ['Kasusunterscheidung', 'Faelle unterscheiden', 'Akkusativ oder Dativ'])
+      expect(resolveTopic(alias), alias).toBe(topic);
+    // Соседние темы синонимами не перехвачены.
+    expect(resolveTopic('Dativ')).toBe('Dativ');
+    expect(resolveTopic('Akkusativ')).toBe('Akkusativ');
+    expect(resolveTopic('Genitiv')).toBe('Genitiv');
+  });
+
+  it('форматы дают блок по правилу смеси: четыре разных и два требовательных', () => {
+    const formats = getTopicFormats(topic);
+    expect(new Set(formats).size).toBeGreaterThanOrEqual(4);
+    const demanding = ['umformung', 'verbindung', 'fehlerkorrektur', 'bedeutung'];
+    expect(formats.filter((id) => demanding.includes(id)).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('промпт несёт формы всех падежей, ступени по уровням и запрет на голые артикли', () => {
+    const prompt = buildExercisePrompt({ level: 'A1', grammarTopic: topic, count: 10 });
+    expect(prompt).toMatch(/GRAMMATIK "Kasus unterscheiden"/);
+    expect(prompt).toMatch(/m der – den – dem – des \| f die – die – der – der/);
+    expect(prompt).toMatch(/A1 nur Nominativ gegen Akkusativ/);
+    expect(prompt).toMatch(/Keine Optionsliste aus bloßen Artikeln/);
+    expect(prompt).toMatch(/NIVEAU A1/);
+    expect(prompt).toMatch(/Auf diesem Niveau NICHT verwenden: Genitiv/);
+  });
+
+  it('четыре падежа одной именной группы — принимаются', () => {
+    const result = validateQuestion(
+      {
+        format: 'luecke',
+        text: 'Выбери правильный вариант.',
+        display: 'Nach dem Unterricht dankt Lena ___ für die Hilfe.',
+        options: [
+          'ihrem neuen Lehrer',
+          'ihren neuen Lehrer',
+          'ihr neuer Lehrer',
+          'ihres neuen Lehrers',
+        ],
+        correct: 0,
+      },
+      { grammarTopic: topic },
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('голые артикли «dem / den / der / des» отклоняются', () => {
+    const result = validateQuestion(
+      {
+        format: 'luecke',
+        text: 'Выбери правильный вариант.',
+        display: 'Ich helfe ___ Freund.',
+        options: ['dem', 'den', 'der', 'des'],
+        correct: 0,
+      },
+      { grammarTopic: topic },
+    );
+    expect(result).toMatchObject({ ok: false });
+    expect(minOptionWords(topic)).toBe(2);
+  });
+
+  it('мини-пара «wohin / wo» с целыми именными группами проходит как «bedeutung»', () => {
+    const result = validateQuestion(
+      {
+        format: 'bedeutung',
+        text: 'Выбери вариант, который подходит по смыслу.',
+        display: 'Die Lampe steht noch im Zelt. Anna trägt sie nach draußen und stellt sie ___.',
+        options: ['auf den Tisch', 'auf dem Tisch', 'auf der Tisch', 'auf die Tische'],
+        correct: 0,
+      },
+      { grammarTopic: topic },
+    );
+    expect(result.ok).toBe(true);
+  });
+});
+
 describe('правило субстанции', () => {
   it('«Infinitiv mit zu» не допускает простого пропуска', () => {
     expect(getTopicFormats('Infinitiv mit zu')).not.toContain('luecke');

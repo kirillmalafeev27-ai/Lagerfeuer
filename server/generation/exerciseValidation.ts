@@ -18,6 +18,7 @@ export const PHRASE_TOPICS: ReadonlySet<string> = new Set([
   'Akkusativ',
   'Dativ',
   'Genitiv',
+  'Kasus unterscheiden',
   'N-Deklination',
   'Adjektivdeklination',
   'Reflexive Verben',

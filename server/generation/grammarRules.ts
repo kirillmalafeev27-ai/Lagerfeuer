@@ -15,6 +15,7 @@ import type { FormatId } from './exerciseFormats.ts';
  *
  * Тексты правил совпадают с Morskoy и Druckmaschine дословно: правите тему — правьте во всех играх
  * серии (тест tests/generation.test.ts сверяет, что у каждой темы клиента есть правила).
+ * Единственное исключение — «Kasus unterscheiden»: этой темы пока нет в Morskoy.
  */
 
 export interface TopicRules {
@@ -304,6 +305,48 @@ Der Bezug muss eindeutig sein (wessen was?), damit nur eine Lösung passt.`,
     traps: `Fehlendes -s am Nomen (des Mann, wegen des Wetter), -s beim Femininum (der Frau-s), Dativ statt Genitiv nach Genitivpräpositionen (wegen dem Wetter — umgangssprachlich verbreitet, hier als Distraktor), Adjektivendung -es/-er statt -en (des guter Mannes), Genitiv vor dem Bezugsnomen.`,
     avoid: `Keine Aufgabe, in der die von-Konstruktion gleichwertig richtig wäre — sonst gibt es zwei Lösungen.
 Keine Optionen mit unterschiedlichem Numerus.`,
+  },
+
+  'Kasus unterscheiden': {
+    rule: `Der Kasus kommt nicht vom Nomen, sondern von seiner FUNKTION im Satz. Vier Fragen: Nominativ – wer? was? | Akkusativ – wen? was? | Dativ – wem? | Genitiv – wessen?
+Bestimmter Artikel: m der – den – dem – des | f die – die – der – der | n das – das – dem – des | Pl die – die – den – der.
+Unbestimmter Artikel (kein-, mein-, dein- … genauso): m ein – einen – einem – eines | f eine – eine – einer – einer | n ein – ein – einem – eines | Pl keine – keine – keinen – keiner.
+Nomen: Genitiv Maskulinum/Neutrum mit -(e)s (des Mannes, des Kindes, des Lehrers); Dativ Plural mit -n (den Kindern).
+NUR das Maskulinum Singular hat vier verschiedene Formen. Femininum: Nominativ = Akkusativ (die) und Dativ = Genitiv (der). Neutrum: Nominativ = Akkusativ (das). Plural: Nominativ = Akkusativ (die).
+Nominativ: Subjekt (auch bei Inversion: "Gestern kam mein Bruder.") und Prädikativ nach sein, werden, bleiben, heißen ("Er ist ein guter Lehrer.").
+Akkusativ: direktes Objekt (sehen, kaufen, brauchen, suchen, fragen, besuchen, kennen, anrufen); durch, für, gegen, ohne, um; Zeitangaben ohne Präposition (jeden Tag); "es gibt"; Wechselpräposition auf die Frage "wohin?".
+Dativ: indirektes Objekt (die Person bei geben, schenken, zeigen, schicken); Dativverben (helfen, danken, gehören, gefallen, gratulieren, antworten, folgen, passen, zuhören, begegnen); aus, bei, mit, nach, seit, von, zu, gegenüber; Wechselpräposition auf die Frage "wo?".
+Genitiv: Besitzer oder Zugehörigkeit, steht NACH dem Bezugsnomen ("das Auto meines Vaters"); wegen, trotz, während, statt, innerhalb, außerhalb.
+Wechselpräpositionen (an, auf, hinter, in, neben, über, unter, vor, zwischen): Richtung/Ziel nach legen, stellen, setzen, gehen, fahren, kommen → Akkusativ | Lage/Ort nach liegen, stehen, sitzen, sein, wohnen → Dativ.
+Kasus prüfen: die Frage stellen (Wem hilft er? → dem Freund) oder durch ein Pronomen ersetzen (er = Nominativ, ihn = Akkusativ, ihm = Dativ, seiner/dessen = Genitiv).
+Zwei Objekte: Dativ = Person, Akkusativ = Sache ("Ich schenke meinem Bruder einen Ball.").
+Niveau: A1 nur Nominativ gegen Akkusativ; A2 dazu Dativ (Dativverben, Dativpräpositionen, Wechselpräpositionen); ab B1 auch Genitiv; B2/C1 auch Genitivpräpositionen, n-Deklination und Adjektivendungen.`,
+    design: `Geprüft wird die KASUSENTSCHEIDUNG selbst: Der Lernende leitet aus der Funktion im Satz ab, welcher Kasus verlangt ist, und wählt dann die passende Form.
+Beste Konstruktion (ab A2): Die 4 Optionen sind DIESELBE Nominalphrase in vier verschiedenen Kasus ("ihr neuer Lehrer / ihren neuen Lehrer / ihrem neuen Lehrer / ihres neuen Lehrers"); der Satz lässt genau einen davon zu. Das geht nur mit einem Maskulinum im Singular, dort sind alle vier Formen verschieden. Bei Femininum, Neutrum und Plural fallen Formen zusammen: Dort nur Kasus gegenüberstellen, die sich in der Form unterscheiden (Femininum: Akkusativ "die" gegen Dativ "der"), und nie zwei formgleiche Optionen anbieten, wenn beide zur Lücke passen.
+Der Satz enthält ein Signal, das den Kasus eindeutig festlegt (Verb, Präposition, wohin/wo, Besitzer, Satzgliedrolle). Die Distraktoren sind die Nachbarkasus, die in einem ähnlichen Satz richtig wären.
+Musteraufgabe (luecke): "Nach dem Unterricht dankt Lena ___ für die Hilfe." → A) ihrem neuen Lehrer (danken + Dativ) B) ihren neuen Lehrer (Akkusativ, russische Interferenz) C) ihr neuer Lehrer (Nominativ) D) ihres neuen Lehrers (Genitiv).
+Wirkungsvolle Kerne, im Block abwechseln: (1) Subjekt gegen Objekt, besonders bei Inversion ("Den Hund beißt der Mann" – wer beißt?); (2) Akkusativ gegen Dativ beim Verb (sehen/helfen, fragen/antworten, besuchen/gratulieren, anrufen/zuhören); (3) Wechselpräposition: wohin gegen wo; (4) Dativ-Person gegen Akkusativ-Sache bei geben/schenken/zeigen, als Mehrfachlücke mit zwei Nominalphrasen im selben Satz (die Optionen sind die 2×2-Matrix aus richtiger und vertauschter Kasuszuordnung); (5) Genitiv als Besitzer gegen Dativ ("das Auto des Vaters" gegen "dem Vater"); (6) Fehlerkorrektur: der Satz enthält genau einen Kasusfehler; (7) selten, höchstens eine pro Block und erst ab A2: Frage nach einem markierten Satzglied ("Der Wolf beobachtet [den Jäger]. Welche Frage passt zum markierten Satzglied?" → "Wen beobachtet der Wolf?" gegen "Wer beobachtet den Jäger?" und "Wem beobachtet der Wolf?").
+Stufung: A1 nur Nominativ gegen Akkusativ im Maskulinum Singular (der/den, ein/einen, mein/meinen), als Mehrfachlücke (Subjekt und Objekt im selben Satz, 2×2-Matrix aus richtiger und vertauschter Zuordnung) oder als Satzvarianten/Fehlerkorrektur mit vertauschten Rollen; Dativ- und Genitivformen erscheinen auf A1 auch nicht als Distraktoren. A2: Akkusativ gegen Dativ, mit Wechselpräpositionen; eine Genitivform höchstens als vierte Option der Vier-Kasus-Konstruktion. Ab B1 alle vier Kasus. B2/C1: Eine Aufgabe darf zwei Kasusentscheidungen verlangen oder Adjektivendung, n-Deklination und Genitivpräpositionen einbeziehen.`,
+    formats: [
+      'luecke',
+      'mehrfachluecke',
+      'fehlerkorrektur',
+      'bedeutung',
+      'satzvarianten',
+      'umformung',
+      'dialog',
+    ],
+    traps: `Der Nachbarkasus: Nominativ statt Akkusativ (Ich sehe der Hund), Dativ statt Akkusativ (Ich frage dem Lehrer), Akkusativ statt Dativ nach Dativverb (Ich helfe den Mann), Akkusativ nach Dativpräposition (mit den Freund) oder Dativ nach Akkusativpräposition (für dem Freund).
+Russische Interferenz: danken, gratulieren, zuhören, begegnen verlangen den Dativ (im Russischen steht dort der Akkusativ); anrufen, besuchen, kennen verlangen den Akkusativ (im Russischen steht bei "anrufen" der Dativ).
+Wechselpräposition mit der falschen Richtungsfrage (Ich lege das Buch auf dem Tisch; Das Buch liegt auf den Tisch).
+Genitiv nicht erkannt (das Auto dem Vater statt des Vaters) oder Genitiv statt Dativ (Ich gebe des Kindes ein Buch).
+Person im Akkusativ statt im Dativ (Ich schenke meinen Bruder einen Ball), Subjekt und Objekt verwechselt (bei "Den Hund beißt der Mann" den Hund für das Subjekt halten), Femininum: die gegen der.`,
+    avoid: `Keine Aufgabe, in der zwei Optionen formgleich sind und beide zum Satz passen (Femininum, Neutrum und Plural: Nominativ = Akkusativ) — das wäre eine doppelte Lösung.
+Keine Wechselpräposition ohne eindeutiges wohin/wo-Signal im Verb: legen, stellen, setzen, gehen, fahren gegen liegen, stehen, sitzen, sein, wohnen.
+Keine Optionsliste aus bloßen Artikeln ("dem / den / der / des"): Die ganze Nominalphrase gehört in die Option.
+Keine Aufgabe, die nur nach dem NAMEN des Kasus fragt ("Welcher Kasus ist das?") — der Lernende wendet den Kasus an, er benennt ihn nicht.
+Keine Verben, deren Rektion schwankt oder von der Bedeutung abhängt (glauben, folgen, hängen), außer der Satz legt die Bedeutung eindeutig fest.
+Keine Aufgabe, die nur am Genus oder an der Endung des Nomens hängt: Geprüft wird die Wahl des Kasus, nicht das Genus.`,
   },
 
   'N-Deklination': {
@@ -900,6 +943,13 @@ export const TOPIC_ALIASES: Record<string, string> = {
   'Partizipien als Adjektive': 'Partizip I und II als Adjektive',
   'als oder wenn': 'als vs. wenn',
   Vorgangspassiv: 'Passiv',
+  Kasusunterscheidung: 'Kasus unterscheiden',
+  'Kasus erkennen': 'Kasus unterscheiden',
+  'Kasus im Vergleich': 'Kasus unterscheiden',
+  'Fälle unterscheiden': 'Kasus unterscheiden',
+  'Akkusativ oder Dativ': 'Kasus unterscheiden',
+  'Akkusativ vs. Dativ': 'Kasus unterscheiden',
+  'Nominativ oder Akkusativ': 'Kasus unterscheiden',
   'Pronomen im Akkusativ': 'Pronomen in Akkusativ',
   'Pronomen im Dativ': 'Pronomen in Dativ',
   'Personalpronomen im Akkusativ': 'Pronomen in Akkusativ',

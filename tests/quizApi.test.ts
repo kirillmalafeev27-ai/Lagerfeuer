@@ -71,6 +71,43 @@ describe('генерация заданий', () => {
     expect(ai.calls[0].url).toBe('https://api.aitunnel.ru/v1/chat/completions');
   });
 
+  it('тема «Kasus unterscheiden» идёт по синониму; задание из голых артиклей отсеивается', async () => {
+    const ai = fakeAi(() => ({
+      status: 200,
+      content: `AUFGABEN
+1. Format: luecke
+Anweisung: Выбери правильный вариант.
+Aufgabe: Nach dem Unterricht dankt Lena ___ für die Hilfe.
+A) ihrem neuen Lehrer
+B) ihren neuen Lehrer
+C) ihr neuer Lehrer
+D) ihres neuen Lehrers
+
+2. Format: luecke
+Anweisung: Выбери правильный вариант.
+Aufgabe: Ich helfe ___ Freund.
+A) dem
+B) den
+C) der
+D) des
+
+LÖSUNGEN
+1: A = ihrem neuen Lehrer
+2: A = dem`,
+    }));
+    const service = new QuizService({ env: ENV, fetch: ai.fetchImpl, log: quiet });
+    const { questions } = await service.generateQuestions({
+      level: 'A2',
+      grammarTopic: 'Akkusativ oder Dativ',
+      count: 1,
+    });
+    expect(questions).toHaveLength(1);
+    expect(questions[0]).toMatchObject({ format: 'luecke' });
+    expect(questions[0].options[questions[0].correct]).toBe('ihrem neuen Lehrer');
+    const prompt = String((ai.calls[0].body.messages as { content: string }[]).at(-1)?.content);
+    expect(prompt).toMatch(/GRAMMATIKTHEMA: Kasus unterscheiden/);
+  });
+
   it('лишние задания ждут в пуле и выдаются без нового запроса', async () => {
     const ai = fakeAi(() => ({ status: 200, content: modelAnswer(8) }));
     const service = new QuizService({ env: ENV, fetch: ai.fetchImpl, log: quiet });

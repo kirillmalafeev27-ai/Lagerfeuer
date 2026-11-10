@@ -100,6 +100,23 @@ async function openPage(size, storage = {}) {
   return { page, errors };
 }
 
+/**
+ * Ждать вопрос, на который можно ответить. Верный ответ без цели остаётся «готовым действием» и
+ * запирает панель, пока игрок не выберет цель (2.5.5). Как человек, берём цель у смешанного бота,
+ * а если бот решил, что делать нечего, — любой шаг стрелкой: это тоже цель.
+ */
+async function untilQuestion(page, timeout = 10000) {
+  const deadline = Date.now() + timeout;
+  const arrows = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'];
+  for (let n = 0; (await page.evaluate(() => window.__bonfires.correct())) === null; n++) {
+    if (Date.now() > deadline) throw new Error(`панель вопроса заперта дольше ${timeout} мс`);
+    await page.evaluate(() => window.__bonfires.botStep());
+    const locked = await page.evaluate(() => window.__bonfires.state()?.hero.ready === true);
+    if (locked && n >= 3) await page.keyboard.press(arrows[n % arrows.length]);
+    await page.waitForTimeout(100);
+  }
+}
+
 const screenIs = (page, name, timeout = 60000) =>
   page.waitForFunction((n) => window.__bonfires && window.__bonfires.screen() === n, name, {
     timeout,
@@ -218,6 +235,14 @@ try {
     await page.waitForSelector('.bf-quiz', { timeout: 10000 });
     check(true, 'первое «Играть» с генерацией на сервере открывает выбор тем');
     await page.screenshot({ path: `${out}/quiz-screen.png` });
+    const tags = await page.$$eval('.bf-quiz .bf-tag', (els) =>
+      els.map((e) => e.textContent?.trim()),
+    );
+    const genitiv = tags.indexOf('Genitiv');
+    check(
+      genitiv >= 0 && tags[genitiv + 1] === 'Kasus unterscheiden',
+      `в выборе тем после Genitiv — «Kasus unterscheiden» (${tags[genitiv + 1]})`,
+    );
     await page.click('.bf-quiz .bf-tag:has-text("B1")');
     await page.click('.bf-quiz .bf-tag:text-is("Dativ")');
     await page.click('.bf-quiz .bf-btn.is-primary');
@@ -255,17 +280,13 @@ try {
       `в ночи — задание генератора (${JSON.stringify(shown)})`,
     );
     const answer = async (right) => {
-      await page.waitForFunction(() => window.__bonfires.correct() !== null, null, {
-        timeout: 10000,
-      });
+      await untilQuestion(page);
       // Как человек: не раньше защиты от двойного тапа (doubleTapGuardMs).
       await page.waitForTimeout(250);
       const c = await page.evaluate(() => window.__bonfires.correct());
       await page.evaluate((i) => window.__bonfires.answer(i), right ? c : (c + 1) % 4);
       const t = Date.now();
-      await page.waitForFunction(() => window.__bonfires.correct() !== null, null, {
-        timeout: 10000,
-      });
+      await untilQuestion(page);
       return Date.now() - t;
     };
     for (let i = 0; i < 3; i++) {
@@ -316,9 +337,7 @@ try {
     await screenIs(page, 'play', 20000);
     let vocab = 0;
     for (let i = 0; i < 5; i++) {
-      await page.waitForFunction(() => window.__bonfires.correct() !== null, null, {
-        timeout: 10000,
-      });
+      await untilQuestion(page);
       const q = await page.evaluate(() => ({
         instruction: !document.querySelector('.bf-instruction').hidden,
         prompt: document.querySelector('.bf-material').textContent,
